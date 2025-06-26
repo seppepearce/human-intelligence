@@ -1,0 +1,310 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: hi-postgres
+    environment:
+      POSTGRES_DB: human_intelligence
+      POSTGRES_USER: hi_user
+      POSTGRES_PASSWORD: hi_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - hi-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hi_user -d human_intelligence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache (Optional)
+  redis:
+    image: redis:7-alpine
+    container_name: hi-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - hi-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # LocalAI Service (Free AI Tier)
+  localai:
+    image: localai/localai:latest
+    container_name: hi-localai
+    ports:
+      - "8081:8080"
+    environment:
+      - DEBUG=true
+      - MODELS_PATH=/models
+      - THREADS=4
+    volumes:
+      - ./ai-models:/models
+      - localai_data:/tmp/localai
+    networks:
+      - hi-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    # Uncomment if you have a GPU
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # Go Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: hi-backend
+    ports:
+      - "8080:8080"
+      - "9090:9090" # Metrics port
+    environment:
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: hi_user
+      DB_PASSWORD: hi_password
+      DB_NAME: human_intelligence
+      DB_SSLMODE: disable
+
+      # Application
+      GIN_MODE: debug
+      PORT: 8080
+      APP_VERSION: dev
+
+      # JWT
+      JWT_SECRET: dev-secret-key-change-in-production
+      JWT_EXPIRY_HOURS: 24
+
+      # Redis
+      REDIS_ENABLED: true
+      REDIS_URL: redis://redis:6379
+
+      # AI Services
+      LOCALAI_ENABLED: true
+      LOCALAI_BASE_URL: http://localai:8080
+      LOCALAI_MODEL_EMBEDDING: all-MiniLM-L6-v2
+      LOCALAI_MODEL_CHAT: gpt-3.5-turbo
+
+      # Search
+      SEARCH_ENGINE: simple
+
+      # Features
+      PLUGINS_ENABLED: true
+      DEBUG_ENABLED: true
+      SEED_DATABASE: true
+
+      # Monitoring
+      METRICS_ENABLED: true
+      METRICS_PORT: 9090
+    volumes:
+      - ./backend:/app
+      - go_modules:/go/pkg/mod
+    networks:
+      - hi-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    # Enable hot reloading in development
+    command: air -c .air.toml
+
+  # SvelteKit Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: hi-frontend
+    ports:
+      - "3000:3000"
+      - "3001:3001" # HMR port
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8080
+      - VITE_WS_URL=ws://localhost:8080
+      - VITE_ENABLE_AI_FEATURES=true
+      - VITE_ENABLE_REAL_TIME=true
+      - HMR_PORT=3001
+    volumes:
+      - ./frontend:/app
+      - node_modules:/app/node_modules
+      - /app/.svelte-kit
+    networks:
+      - hi-network
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # Elasticsearch (Optional - for advanced search)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: hi-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - hi-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - search
+      - full
+
+  # Kibana (Optional - for Elasticsearch UI)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: hi-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - hi-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - search
+      - full
+
+  # Prometheus (Optional - for metrics)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: hi-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - hi-network
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    restart: unless-stopped
+    profiles:
+      - monitoring
+      - full
+
+  # Grafana (Optional - for dashboards)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: hi-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - hi-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    profiles:
+      - monitoring
+      - full
+
+  # Adminer (Optional - for database management)
+  adminer:
+    image: adminer:latest
+    container_name: hi-adminer
+    ports:
+      - "8082:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+    networks:
+      - hi-network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    profiles:
+      - tools
+      - full
+
+# Named volumes for persistent data
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  localai_data:
+    driver: local
+  go_modules:
+    driver: local
+  node_modules:
+    driver: local
+
+# Networks
+networks:
+  hi-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+# Override for different environments
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.override.yml up

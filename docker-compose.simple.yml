@@ -1,0 +1,125 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: hi-postgres-simple
+    environment:
+      POSTGRES_DB: human_intelligence
+      POSTGRES_USER: hi_user
+      POSTGRES_PASSWORD: hi_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hi-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hi_user -d human_intelligence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Go Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: hi-backend-simple
+    ports:
+      - "8080:8080"
+    environment:
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: hi_user
+      DB_PASSWORD: hi_password
+      DB_NAME: human_intelligence
+      DB_SSLMODE: disable
+
+      # Application
+      GIN_MODE: debug
+      PORT: 8080
+      APP_VERSION: dev
+
+      # JWT
+      JWT_SECRET: dev-secret-key-change-in-production
+      JWT_EXPIRY_HOURS: 24
+
+      # Features (simplified)
+      REDIS_ENABLED: false
+      LOCALAI_ENABLED: false
+      SEARCH_ENGINE: simple
+      PLUGINS_ENABLED: true
+      DEBUG_ENABLED: true
+      SEED_DATABASE: true
+
+      # Monitoring
+      METRICS_ENABLED: true
+      METRICS_PORT: 9090
+    volumes:
+      - ./backend:/app
+      - go_modules:/go/pkg/mod
+    networks:
+      - hi-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    command: air -c .air.toml
+
+  # SvelteKit Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: hi-frontend-simple
+    ports:
+      - "3000:3000"
+      - "3001:3001" # HMR port
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8080
+      - VITE_WS_URL=ws://localhost:8080
+      - VITE_ENABLE_AI_FEATURES=false
+      - VITE_ENABLE_REAL_TIME=true
+      - HMR_PORT=3001
+    volumes:
+      - ./frontend:/app
+      - node_modules:/app/node_modules
+      - /app/.svelte-kit
+    networks:
+      - hi-network
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+# Named volumes for persistent data
+volumes:
+  postgres_data:
+    driver: local
+  go_modules:
+    driver: local
+  node_modules:
+    driver: local
+
+# Networks
+networks:
+  hi-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
