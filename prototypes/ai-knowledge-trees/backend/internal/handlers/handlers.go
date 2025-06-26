@@ -9,6 +9,7 @@ import (
 	"github.com/human-intelligence/ai-knowledge-trees/backend/internal/ai"
 	"github.com/human-intelligence/ai-knowledge-trees/backend/internal/db"
 	"github.com/human-intelligence/ai-knowledge-trees/backend/internal/models"
+	"github.com/human-intelligence/ai-knowledge-trees/backend/internal/seed"
 )
 
 // Handler represents the HTTP handler with its dependencies
@@ -67,6 +68,14 @@ func (h *Handler) RegisterRoutes(router *gin.Engine) {
 			aiRoutes.POST("/analyze", h.AnalyzeContent)
 			aiRoutes.POST("/suggest-connections", h.SuggestConnections)
 			aiRoutes.GET("/health", h.AIHealthCheck)
+		}
+
+		// Admin routes
+		admin := v1.Group("/admin")
+		{
+			admin.POST("/seed", h.SeedDatabase)
+			admin.DELETE("/seed", h.ClearSeedData)
+			admin.GET("/seed/status", h.GetSeedStatus)
 		}
 	}
 }
@@ -829,6 +838,84 @@ func (h *Handler) SuggestConnections(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, models.NewSuccessResponse(result))
+}
+
+// SeedDatabase populates the database with demo data
+func (h *Handler) SeedDatabase(c *gin.Context) {
+	// Check if already seeded
+	seeded, err := seed.CheckIfSeeded(h.db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewErrorResponse(
+			"DATABASE_ERROR",
+			"Failed to check seed status",
+			err.Error(),
+		))
+		return
+	}
+
+	if seeded {
+		c.JSON(http.StatusConflict, models.NewErrorResponse(
+			"ALREADY_SEEDED",
+			"Database already contains seed data",
+			"Use DELETE /admin/seed to clear existing seed data first",
+		))
+		return
+	}
+
+	// Seed the database
+	if err := seed.SeedData(h.db); err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewErrorResponse(
+			"SEED_ERROR",
+			"Failed to seed database",
+			err.Error(),
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, models.NewSuccessResponse(map[string]string{
+		"message": "Database successfully seeded with demo data",
+		"status":  "seeded",
+	}))
+}
+
+// ClearSeedData removes all seed data from the database
+func (h *Handler) ClearSeedData(c *gin.Context) {
+	if err := seed.ClearSeedData(h.db); err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewErrorResponse(
+			"CLEAR_ERROR",
+			"Failed to clear seed data",
+			err.Error(),
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, models.NewSuccessResponse(map[string]string{
+		"message": "Seed data successfully cleared",
+		"status":  "cleared",
+	}))
+}
+
+// GetSeedStatus checks if the database contains seed data
+func (h *Handler) GetSeedStatus(c *gin.Context) {
+	seeded, err := seed.CheckIfSeeded(h.db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewErrorResponse(
+			"DATABASE_ERROR",
+			"Failed to check seed status",
+			err.Error(),
+		))
+		return
+	}
+
+	status := "empty"
+	if seeded {
+		status = "seeded"
+	}
+
+	c.JSON(http.StatusOK, models.NewSuccessResponse(map[string]interface{}{
+		"seeded": seeded,
+		"status": status,
+	}))
 }
 
 // === Helper Functions ===

@@ -327,16 +327,38 @@ func (db *DB) GetNode(id string) (*models.Node, error) {
 		WHERE id = ?
 	`
 	node := &models.Node{}
+
+	// Use nullable types for fields that can be NULL
+	var embedding sql.NullString
+	var concepts sql.NullString
+	var difficulty sql.NullInt64
+	var aiSuggestions sql.NullString
+
 	err := db.conn.QueryRow(query, id).Scan(
 		&node.ID, &node.TreeID, &node.ParentID, &node.Title, &node.Content,
-		&node.Depth, &node.Position, &node.Embedding, &node.Concepts,
-		&node.Difficulty, &node.AISuggestions, &node.CreatedAt, &node.UpdatedAt,
+		&node.Depth, &node.Position, &embedding, &concepts,
+		&difficulty, &aiSuggestions, &node.CreatedAt, &node.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get node: %w", err)
+	}
+
+	// Handle NULL values
+	if embedding.Valid {
+		node.Embedding = []byte(embedding.String)
+	}
+	if concepts.Valid {
+		node.Concepts = []byte(concepts.String)
+	}
+	if difficulty.Valid {
+		difficultyInt := int(difficulty.Int64)
+		node.Difficulty = &difficultyInt
+	}
+	if aiSuggestions.Valid {
+		node.AISuggestions = &aiSuggestions.String
 	}
 	return node, nil
 }
@@ -358,14 +380,37 @@ func (db *DB) GetNodesByTreeID(treeID string) ([]models.Node, error) {
 	nodes := []models.Node{}
 	for rows.Next() {
 		node := models.Node{}
+
+		// Use nullable types for fields that can be NULL
+		var embedding sql.NullString
+		var concepts sql.NullString
+		var difficulty sql.NullInt64
+		var aiSuggestions sql.NullString
+
 		err := rows.Scan(
 			&node.ID, &node.TreeID, &node.ParentID, &node.Title, &node.Content,
-			&node.Depth, &node.Position, &node.Embedding, &node.Concepts,
-			&node.Difficulty, &node.AISuggestions, &node.CreatedAt, &node.UpdatedAt,
+			&node.Depth, &node.Position, &embedding, &concepts,
+			&difficulty, &aiSuggestions, &node.CreatedAt, &node.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan node: %w", err)
 		}
+
+		// Handle NULL values
+		if embedding.Valid {
+			node.Embedding = []byte(embedding.String)
+		}
+		if concepts.Valid {
+			node.Concepts = []byte(concepts.String)
+		}
+		if difficulty.Valid {
+			difficultyInt := int(difficulty.Int64)
+			node.Difficulty = &difficultyInt
+		}
+		if aiSuggestions.Valid {
+			node.AISuggestions = &aiSuggestions.String
+		}
+
 		nodes = append(nodes, node)
 	}
 
