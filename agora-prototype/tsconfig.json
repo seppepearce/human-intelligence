@@ -1,0 +1,73 @@
+{
+	"extends": "./.svelte-kit/tsconfig.json",
+	"compilerOptions": {
+		// Language and Environment
+		"target": "ES2020",
+		"lib": ["ES2020", "DOM", "DOM.Iterable"],
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"allowImportingTsExtensions": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"noEmit": true,
+
+		// Type Checking
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"exactOptionalPropertyTypes": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUncheckedIndexedAccess": true,
+		"noImplicitOverride": true,
+		"noPropertyAccessFromIndexSignature": false,
+
+		// JavaScript Support
+		"allowJs": true,
+		"checkJs": false,
+
+		// Interop Constraints
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+
+		// Path Mapping
+		"baseUrl": ".",
+		"paths": {
+			"$lib": ["./src/lib"],
+			"$lib/*": ["./src/lib/*"],
+			"$app/*": ["./.svelte-kit/runtime/app/*"],
+			"$env/*": ["./.svelte-kit/runtime/env/*"],
+			"$types/*": ["./src/types/*"]
+		},
+
+		// Advanced Options
+		"skipLibCheck": true,
+		"declaration": false,
+		"declarationMap": false,
+		"sourceMap": true,
+
+		// Svelte-specific
+		"verbatimModuleSyntax": false
+	},
+	"include": [
+		"src/**/*.d.ts",
+		"src/**/*.js",
+		"src/**/*.ts",
+		"src/**/*.svelte",
+		"vite.config.js",
+		"vite.config.ts",
+		"tailwind.config.js"
+	],
+	"exclude": [
+		"node_modules/**",
+		".svelte-kit/**",
+		"build/**",
+		"dist/**",
+		"**/*.test.*",
+		"**/*.spec.*"
+	],
+	"ts-node": {
+		"esm": true
+	}
+}
