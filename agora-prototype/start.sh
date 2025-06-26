@@ -137,8 +137,8 @@ echo
 echo -e "${GREEN}🎉 Digital Agora is now running!${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${CYAN}Frontend:${NC}    http://localhost:3001"
-echo -e "${CYAN}WebSocket:${NC}   ws://localhost:8082/ws"
-echo -e "${CYAN}API:${NC}         http://localhost:8082/api"
+echo -e "${CYAN}WebSocket:${NC}   ws://localhost:8083/ws"
+echo -e "${CYAN}API:${NC}         http://localhost:8083/api"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"

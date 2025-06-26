@@ -575,7 +575,7 @@ func (as *AgoraServer) findCrossPollinationOpportunities(user *User) []*Space {
 		}
 
 		space.mutex.RLock()
-		hasCapacity := len(space.Participants) < space.Capacity*0.7 // Not too crowded
+		hasCapacity := len(space.Participants) < int(float64(space.Capacity)*0.7) // Not too crowded
 		space.mutex.RUnlock()
 
 		if !hasCapacity {
@@ -679,9 +679,9 @@ func main() {
 		})
 	})
 
-	fmt.Println("🏛️  Digital Agora Server starting on :8082")
-	fmt.Println("WebSocket endpoint: ws://localhost:8082/ws")
-	fmt.Println("API endpoint: http://localhost:8082/api/spaces")
+	fmt.Println("🏛️  Digital Agora Server starting on :8083")
+	fmt.Println("WebSocket endpoint: ws://localhost:8083/ws")
+	fmt.Println("API endpoint: http://localhost:8083/api/spaces")
 
-	log.Fatal(http.ListenAndServe(":8082", r))
+	log.Fatal(http.ListenAndServe(":8083", r))
 }

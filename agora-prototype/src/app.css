@@ -1,0 +1,197 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Agora Global Styles */
+:root {
+	/* Ancient Greek inspired color palette */
+	--agora-marble: #f8f9fa;
+	--agora-stone: #e9ecef;
+	--agora-shadow: #495057;
+	--agora-night: #1a1a2e;
+	--agora-deep: #16213e;
+	--agora-gold: #d4af37;
+	--agora-bronze: #cd7f32;
+	--agora-crimson: #dc143c;
+	--agora-olive: #808000;
+
+	/* Modern accent colors */
+	--agora-neon-cyan: #00f5ff;
+	--agora-neon-purple: #8b5cf6;
+	--agora-neon-pink: #ff006e;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html {
+	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	line-height: 1.6;
+}
+
+body {
+	margin: 0;
+	background: linear-gradient(135deg, var(--agora-night) 0%, var(--agora-deep) 100%);
+	color: var(--agora-marble);
+	min-height: 100vh;
+}
+
+/* Agora Typography */
+h1, h2, h3, h4, h5, h6 {
+	font-family: 'Crimson Text', Georgia, serif;
+	font-weight: 600;
+	color: var(--agora-gold);
+	text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+	width: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--agora-deep);
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--agora-gold);
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--agora-bronze);
+}
+
+/* Custom Utility Classes */
+.bg-agora-night {
+	background-color: var(--agora-night);
+}
+
+.bg-agora-deep {
+	background-color: var(--agora-deep);
+}
+
+.bg-agora-gold {
+	background-color: var(--agora-gold);
+}
+
+.text-agora-gold {
+	color: var(--agora-gold);
+}
+
+.text-agora-marble {
+	color: var(--agora-marble);
+}
+
+.text-agora-stone {
+	color: var(--agora-stone);
+}
+
+.text-agora-neon-cyan {
+	color: var(--agora-neon-cyan);
+}
+
+.text-agora-neon-purple {
+	color: var(--agora-neon-purple);
+}
+
+.border-agora-gold {
+	border-color: var(--agora-gold);
+}
+
+.from-agora-night {
+	--tw-gradient-from: var(--agora-night);
+	--tw-gradient-to: rgb(26 26 46 / 0);
+	--tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.via-agora-deep {
+	--tw-gradient-to: rgb(22 33 62 / 0);
+	--tw-gradient-stops: var(--tw-gradient-from), var(--agora-deep), var(--tw-gradient-to);
+}
+
+.to-agora-night {
+	--tw-gradient-to: var(--agora-night);
+}
+
+/* Container max-width */
+.container {
+	max-width: 1200px;
+}
+
+/* Agora-specific utilities */
+.agora-glow {
+	box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+}
+
+.agora-glow:hover {
+	box-shadow: 0 0 30px rgba(212, 175, 55, 0.5);
+}
+
+.agora-card {
+	background-color: rgba(22, 33, 62, 0.5);
+	border-radius: 0.5rem;
+	border: 1px solid rgba(212, 175, 55, 0.2);
+	backdrop-filter: blur(10px);
+}
+
+.agora-button {
+	padding: 0.5rem 1rem;
+	border-radius: 0.375rem;
+	font-weight: 500;
+	transition: all 0.2s ease;
+	border: 1px solid rgba(212, 175, 55, 0.3);
+	background-color: rgba(212, 175, 55, 0.1);
+	color: var(--agora-gold);
+}
+
+.agora-button:hover {
+	background-color: rgba(212, 175, 55, 0.2);
+	box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+}
+
+/* Loading state */
+.agora-loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 100vh;
+	background: var(--agora-night);
+}
+
+.agora-spinner {
+	width: 40px;
+	height: 40px;
+	border: 3px solid var(--agora-deep);
+	border-top: 3px solid var(--agora-gold);
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+/* Focus states */
+:focus-visible {
+	outline: 2px solid var(--agora-gold);
+	outline-offset: 2px;
+}
+
+/* Ensure full height */
+#svelte {
+	min-height: 100vh;
+}
