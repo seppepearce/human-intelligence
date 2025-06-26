@@ -1,0 +1,46 @@
+# Development Dockerfile for Human Intelligence Backend
+FROM golang:1.21-alpine AS development
+
+# Install system dependencies
+RUN apk add --no-cache \
+    git \
+    curl \
+    build-base \
+    ca-certificates \
+    tzdata
+
+# Set timezone
+ENV TZ=UTC
+
+# Create app directory
+WORKDIR /app
+
+# Install development tools (using compatible versions for Go 1.21)
+RUN go install github.com/cosmtrek/air@v1.49.0 && \
+    go install github.com/swaggo/swag/cmd/swag@latest && \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.2
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download && go mod verify
+
+# Copy source code (includes .air.toml)
+COPY . .
+
+# Create directories for uploads and logs
+RUN mkdir -p /app/uploads /app/logs
+
+# Set permissions
+RUN chmod +x /app
+
+# Expose ports
+EXPOSE 8080 9090
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Default command for development (can be overridden)
+CMD ["air", "-c", ".air.toml"]

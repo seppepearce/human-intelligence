@@ -1,0 +1,108 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+*.md
+docs/
+*.txt
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Go specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Air (hot reload) files
+tmp/
+.air.toml
+
+# Build artifacts
+bin/
+build/
+dist/
+
+# Log files
+*.log
+logs/
+
+# Environment files (these should be mounted or passed as env vars)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Upload directories
+uploads/
+static/uploads/
+
+# Test files and data
+*_test.go
+testdata/
+test/
+tests/
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Development tools
+tools/
+scripts/dev/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+
+# Dependencies (should be downloaded in container)
+vendor/
+
+# Docker files (except the one being used)
+Dockerfile.prod
+docker-compose*.yml
+
+# Kubernetes manifests
+k8s/
+manifests/
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# License and legal
+LICENSE
+NOTICE
+CHANGELOG.md
+CONTRIBUTING.md
