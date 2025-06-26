@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%sveltekit.assets%/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Primary Meta Tags -->
+    <title>%sveltekit.title%</title>
+    <meta name="title" content="Human Intelligence - HI!" />
+    <meta
+      name="description"
+      content="A collaborative learning platform where human intelligence meets AI augmentation. Share knowledge, build learning paths, and grow together."
+    />
+    <meta
+      name="keywords"
+      content="learning, education, AI, collaboration, forum, knowledge sharing, human intelligence"
+    />
+    <meta name="author" content="HI Team" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://humanintelligence.ai/" />
+    <meta property="og:title" content="Human Intelligence - HI!" />
+    <meta
+      property="og:description"
+      content="A collaborative learning platform where human intelligence meets AI augmentation."
+    />
+    <meta property="og:image" content="%sveltekit.assets%/og-image.png" />
+    <meta property="og:site_name" content="Human Intelligence" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://humanintelligence.ai/" />
+    <meta property="twitter:title" content="Human Intelligence - HI!" />
+    <meta
+      property="twitter:description"
+      content="A collaborative learning platform where human intelligence meets AI augmentation."
+    />
+    <meta
+      property="twitter:image"
+      content="%sveltekit.assets%/twitter-image.png"
+    />
+
+    <!-- Theme and App Meta -->
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="application-name" content="Human Intelligence" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="HI!" />
+
+    <!-- Using system fonts for better performance and CSP compliance -->
+
+    <!-- Manifest for PWA -->
+    <link rel="manifest" href="%sveltekit.assets%/manifest.json" />
+
+    <!-- Favicon variations -->
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="%sveltekit.assets%/apple-touch-icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="%sveltekit.assets%/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="%sveltekit.assets%/favicon-16x16.png"
+    />
+
+    <!-- Critical CSS for initial render -->
+    <style>
+      /* Critical CSS for vaporwave loading */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: #0a0a0a;
+        color: #ffffff;
+        overflow-x: hidden;
+      }
+
+      /* Loading screen with retro grid */
+      .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: linear-gradient(rgba(255, 0, 110, 0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 0, 110, 0.1) 1px, transparent 1px),
+          linear-gradient(45deg, #0a0a0a, #1a1a1a);
+        background-size: 20px 20px, 20px 20px, 100% 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+
+      .loading-logo {
+        font-family: "Courier New", monospace;
+        font-size: 4rem;
+        font-weight: 900;
+        color: #ff006e;
+        text-shadow: 0 0 10px #ff006e, 0 0 20px #ff006e, 0 0 30px #ff006e;
+        animation: neon-flicker 2s infinite;
+      }
+
+      @keyframes neon-flicker {
+        0%,
+        18%,
+        22%,
+        25%,
+        53%,
+        57%,
+        100% {
+          text-shadow: 0 0 10px #ff006e, 0 0 20px #ff006e, 0 0 30px #ff006e;
+        }
+        20%,
+        24%,
+        55% {
+          text-shadow: none;
+        }
+      }
+
+      /* Scrollbar styling */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #1a1a1a;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(45deg, #ff006e, #8338ec);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(45deg, #8338ec, #00f5ff);
+      }
+
+      /* Selection styling */
+      ::selection {
+        background: rgba(255, 0, 110, 0.3);
+        color: #ffffff;
+      }
+
+      ::-moz-selection {
+        background: rgba(255, 0, 110, 0.3);
+        color: #ffffff;
+      }
+    </style>
+
+    %sveltekit.head%
+  </head>
+  <body data-sveltekit-preload-data="hover" data-theme="dark">
+    <!-- Loading screen -->
+    <div class="loading-screen" id="loading-screen">
+      <div class="loading-logo">HI!</div>
+    </div>
+
+    <!-- Main app container -->
+    <div style="display: contents">%sveltekit.body%</div>
+
+    <!-- Remove loading screen after app loads -->
+    <script>
+      // Remove loading screen once the app is ready
+      document.addEventListener("DOMContentLoaded", function () {
+        setTimeout(function () {
+          const loadingScreen = document.getElementById("loading-screen");
+          if (loadingScreen) {
+            loadingScreen.style.opacity = "0";
+            loadingScreen.style.transition = "opacity 0.5s ease-out";
+            setTimeout(function () {
+              loadingScreen.remove();
+            }, 500);
+          }
+        }, 1000);
+      });
+
+      // Console easter egg for the hackers
+      console.log(`
+	██╗  ██╗██╗██╗
+	██║  ██║██║██║
+	███████║██║██║
+	██╔══██║██║╚═╝
+	██║  ██║██║██╗
+	╚═╝  ╚═╝╚═╝╚═╝
+
+	Welcome to Human Intelligence!
+
+	🚀 Where AI augments HI
+	🧠 Factorial learning platform
+	💡 Open source & collaborative
+
+	Interested in contributing?
+	Check out: github.com/your-org/human-intelligence
+			`);
+
+      // Theme detection and persistence
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+      const storedTheme = localStorage.getItem("theme");
+      const theme = storedTheme || (prefersDark ? "dark" : "light");
+
+      document.documentElement.classList.toggle("dark", theme === "dark");
+      localStorage.setItem("theme", theme);
+    </script>
+  </body>
+</html>
