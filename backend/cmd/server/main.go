@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"human-intelligence/internal/database"
+	"human-intelligence/internal/handlers"
 	"human-intelligence/internal/models"
 
 	"github.com/gin-contrib/cors"
@@ -19,9 +20,10 @@ import (
 )
 
 type Server struct {
-	neo4j  *database.Neo4jService
-	router *gin.Engine
-	server *http.Server
+	neo4j       *database.Neo4jService
+	treeHandler *handlers.TreeHandler
+	router      *gin.Engine
+	server      *http.Server
 }
 
 func main() {
@@ -78,6 +80,7 @@ func (s *Server) initNeo4j() error {
 	}
 
 	s.neo4j = neo4jService
+	s.treeHandler = handlers.NewTreeHandler(neo4jService)
 	log.Println("✅ Connected to Neo4j successfully")
 	return nil
 }
@@ -111,9 +114,15 @@ func (s *Server) setupRoutes() {
 		api.GET("/nodes/:id", s.getNode)
 		api.GET("/nodes", s.searchNodes)
 
-		// Trees
-		api.POST("/trees", s.createTree)
-		api.GET("/trees/:id", s.getTree)
+		// Enhanced Trees with hierarchical structure
+		api.POST("/trees", s.treeHandler.CreateTree)
+		api.GET("/trees/:treeId", s.treeHandler.GetTreeStructure)
+		api.PUT("/trees/:treeId", s.treeHandler.UpdateTreeMetadata)
+		api.DELETE("/trees/:treeId", s.treeHandler.DeleteTree)
+		api.POST("/trees/:treeId/nodes", s.treeHandler.AddNodeToTree)
+		api.GET("/trees/:treeId/nodes", s.treeHandler.GetTreeNodes)
+
+		// Legacy tree endpoints (backward compatibility)
 		api.POST("/trees/:treeId/nodes/:nodeId", s.addNodeToTree)
 
 		// Tags
@@ -126,6 +135,9 @@ func (s *Server) setupRoutes() {
 
 		// Search
 		api.GET("/search", s.search)
+
+		// Debug endpoint
+		api.POST("/debug/simple-node", s.createSimpleNode)
 	}
 }
 
@@ -155,8 +167,6 @@ func (s *Server) createUser(c *gin.Context) {
 	}
 
 	user.ID = generateID()
-	user.CreatedAt = time.Now()
-	user.UpdatedAt = time.Now()
 	user.IsActive = true
 
 	ctx := context.Background()
@@ -211,8 +221,6 @@ func (s *Server) createNode(c *gin.Context) {
 	}
 
 	node.ID = generateID()
-	node.CreatedAt = time.Now()
-	node.UpdatedAt = time.Now()
 
 	ctx := context.Background()
 	if err := s.neo4j.CreateNode(ctx, &node); err != nil {
@@ -261,8 +269,8 @@ func (s *Server) searchNodes(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// Tree endpoints
-func (s *Server) createTree(c *gin.Context) {
+// Legacy tree endpoints for backward compatibility
+func (s *Server) createTreeLegacy(c *gin.Context) {
 	var tree models.Tree
 	if err := c.ShouldBindJSON(&tree); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -270,8 +278,6 @@ func (s *Server) createTree(c *gin.Context) {
 	}
 
 	tree.ID = generateID()
-	tree.CreatedAt = time.Now()
-	tree.UpdatedAt = time.Now()
 
 	ctx := context.Background()
 	if err := s.neo4j.CreateTree(ctx, &tree); err != nil {
@@ -280,11 +286,6 @@ func (s *Server) createTree(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, tree)
-}
-
-func (s *Server) getTree(c *gin.Context) {
-	// Implementation would go here
-	c.JSON(http.StatusOK, gin.H{"message": "Get tree implementation needed"})
 }
 
 func (s *Server) addNodeToTree(c *gin.Context) {
@@ -310,7 +311,6 @@ func (s *Server) createTag(c *gin.Context) {
 	}
 
 	tag.ID = generateID()
-	tag.CreatedAt = time.Now()
 
 	ctx := context.Background()
 	if err := s.neo4j.CreateTag(ctx, &tag); err != nil {
@@ -419,6 +419,59 @@ func getIntParam(c *gin.Context, key string, defaultValue int) int {
 		}
 	}
 	return defaultValue
+}
+
+func (s *Server) createSimpleNode(c *gin.Context) {
+	ctx := context.Background()
+
+	// Create a simple node directly with Neo4j query
+	query := `
+		CREATE (n:Node {
+			id: $id,
+			title: $title,
+			content: $content,
+			content_type: 'text',
+			is_public: true,
+			created_at: datetime(),
+			updated_at: datetime(),
+			owner_id: 'debug-user'
+		})
+		RETURN n.id as id, n.title as title, n.created_at as created_at
+	`
+
+	params := map[string]interface{}{
+		"id":      fmt.Sprintf("debug-node-%d", time.Now().UnixNano()),
+		"title":   "Debug Node",
+		"content": "This is a debug node created directly",
+	}
+
+	records, err := s.neo4j.ExecuteQuery(ctx, query, params)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(records) > 0 {
+		record := records[0]
+		result := map[string]interface{}{}
+
+		if id, ok := record.Get("id"); ok {
+			result["id"] = id
+		}
+		if title, ok := record.Get("title"); ok {
+			result["title"] = title
+		}
+		if createdAt, ok := record.Get("created_at"); ok {
+			result["created_at"] = createdAt
+		}
+
+		c.JSON(http.StatusCreated, gin.H{
+			"message": "Debug node created successfully",
+			"node":    result,
+		})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No records returned"})
+	}
 }
 
 func generateID() string {

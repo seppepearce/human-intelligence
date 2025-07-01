@@ -216,19 +216,31 @@ func (s *Neo4jService) CreateUser(ctx context.Context, user *models.User) error 
 			bio: $bio,
 			is_active: $is_active,
 			is_verified: $is_verified,
-			created_at: $created_at,
-			updated_at: $updated_at,
+			created_at: datetime(),
+			updated_at: datetime(),
 			preferences: $preferences,
-			followers_count: $followers_count,
-			following_count: $following_count,
-			nodes_count: $nodes_count,
-			trees_count: $trees_count,
-			reputation_score: $reputation_score
+			followers_count: 0,
+			following_count: 0,
+			nodes_count: 0,
+			trees_count: 0,
+			reputation_score: 0
 		})
 		RETURN u
 	`
 
-	params := user.GetProperties()
+	params := map[string]interface{}{
+		"id":            user.ID,
+		"username":      user.Username,
+		"email":         user.Email,
+		"password_hash": user.PasswordHash,
+		"first_name":    user.FirstName,
+		"last_name":     user.LastName,
+		"avatar":        user.Avatar,
+		"bio":           user.Bio,
+		"is_active":     user.IsActive,
+		"is_verified":   user.IsVerified,
+		"preferences":   user.Preferences,
+	}
 	_, err := s.ExecuteWrite(ctx, query, params)
 	return err
 }
@@ -314,7 +326,6 @@ func (s *Neo4jService) UpdateUser(ctx context.Context, user *models.User) error 
 // CreateNode creates a new node
 func (s *Neo4jService) CreateNode(ctx context.Context, node *models.Node) error {
 	query := `
-		MATCH (owner:User {id: $owner_id})
 		CREATE (n:Node {
 			id: $id,
 			title: $title,
@@ -323,26 +334,35 @@ func (s *Neo4jService) CreateNode(ctx context.Context, node *models.Node) error 
 			description: $description,
 			is_public: $is_public,
 			is_published: $is_published,
-			created_at: $created_at,
-			updated_at: $updated_at,
-			views_count: $views_count,
-			likes_count: $likes_count,
-			shares_count: $shares_count,
+			created_at: datetime(),
+			updated_at: datetime(),
+			views_count: 0,
+			likes_count: 0,
+			shares_count: 0,
 			metadata: $metadata,
-			embedding_vector: $embedding_vector,
 			owner_id: $owner_id,
 			parent_node_id: $parent_node_id,
 			level: $level,
 			position: $position
 		})
-		CREATE (owner)-[:CREATED]->(n)
-		WITH n
-		MATCH (owner:User {id: $owner_id})
-		SET owner.nodes_count = owner.nodes_count + 1
 		RETURN n
 	`
 
-	params := node.GetProperties()
+	params := map[string]interface{}{
+		"id":             node.ID,
+		"title":          node.Title,
+		"content":        node.Content,
+		"content_type":   node.ContentType,
+		"description":    node.Description,
+		"is_public":      node.IsPublic,
+		"is_published":   node.IsPublished,
+		"metadata":       node.Metadata,
+		"owner_id":       node.OwnerID,
+		"parent_node_id": node.ParentNodeID,
+		"level":          node.Level,
+		"position":       node.Position,
+	}
+
 	_, err := s.ExecuteWrite(ctx, query, params)
 	return err
 }
@@ -576,30 +596,35 @@ func (s *Neo4jService) SearchNodes(ctx context.Context, query *models.GraphQuery
 // CreateTree creates a new tree
 func (s *Neo4jService) CreateTree(ctx context.Context, tree *models.Tree) error {
 	query := `
-		MATCH (owner:User {id: $owner_id})
 		CREATE (t:Tree {
 			id: $id,
 			name: $name,
 			description: $description,
 			is_public: $is_public,
 			is_template: $is_template,
-			created_at: $created_at,
-			updated_at: $updated_at,
-			views_count: $views_count,
-			likes_count: $likes_count,
-			forks_count: $forks_count,
+			created_at: datetime(),
+			updated_at: datetime(),
+			views_count: 0,
+			likes_count: 0,
+			forks_count: 0,
 			nodes_count: $nodes_count,
 			owner_id: $owner_id,
 			parent_tree_id: $parent_tree_id
 		})
-		CREATE (owner)-[:CREATED]->(t)
-		WITH t
-		MATCH (owner:User {id: $owner_id})
-		SET owner.trees_count = owner.trees_count + 1
 		RETURN t
 	`
 
-	params := tree.GetProperties()
+	params := map[string]interface{}{
+		"id":             tree.ID,
+		"name":           tree.Name,
+		"description":    tree.Description,
+		"is_public":      tree.IsPublic,
+		"is_template":    tree.IsTemplate,
+		"nodes_count":    tree.NodesCount,
+		"owner_id":       tree.OwnerID,
+		"parent_tree_id": tree.ParentTreeID,
+	}
+
 	_, err := s.ExecuteWrite(ctx, query, params)
 	return err
 }
@@ -633,13 +658,17 @@ func (s *Neo4jService) CreateTag(ctx context.Context, tag *models.Tag) error {
 			id: $id,
 			name: $name,
 			color: $color,
-			created_at: $created_at,
-			usage_count: $usage_count
+			created_at: datetime(),
+			usage_count: 0
 		})
 		RETURN tag
 	`
 
-	params := tag.GetProperties()
+	params := map[string]interface{}{
+		"id":    tag.ID,
+		"name":  tag.Name,
+		"color": tag.Color,
+	}
 	_, err := s.ExecuteWrite(ctx, query, params)
 	return err
 }

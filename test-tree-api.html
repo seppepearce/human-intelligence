@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Tree API Test - Neo4j Learning Trees</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            border: 1px solid #e9ecef;
+        }
+
+        .panel h2 {
+            margin: 0 0 20px 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        button.secondary {
+            background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+        }
+
+        button.danger {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .response {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .tree-visualization {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            min-height: 300px;
+        }
+
+        .node {
+            background: #3498db;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin: 5px;
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .node.root {
+            background: #e74c3c;
+        }
+
+        .node.level-1 {
+            background: #f39c12;
+            margin-left: 30px;
+        }
+
+        .node.level-2 {
+            background: #27ae60;
+            margin-left: 60px;
+        }
+
+        .node.level-3 {
+            background: #9b59b6;
+            margin-left: 90px;
+        }
+
+        .tree-line {
+            color: #bdc3c7;
+            font-family: monospace;
+            margin: 2px 0;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-healthy {
+            background: #27ae60;
+        }
+
+        .status-error {
+            background: #e74c3c;
+        }
+
+        .current-tree-info {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌳 Enhanced Tree API Test</h1>
+            <p>Testing hierarchical learning trees with Neo4j - Create, branch, and explore knowledge trees</p>
+            <div style="margin-top: 15px;">
+                <span class="status-indicator" id="apiStatus"></span>
+                <span id="apiStatusText">Checking API status...</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Left Panel: Tree Operations -->
+            <div class="panel">
+                <h2>🛠️ Tree Operations</h2>
+
+                <!-- Current Tree Info -->
+                <div class="current-tree-info" id="currentTreeInfo">
+                    <strong>No tree selected</strong><br>
+                    Create a new tree or load an existing one to get started.
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <button onclick="checkApiHealth()">🔍 Check API</button>
+                    <button onclick="loadSampleTree()" class="secondary">📋 Load Sample</button>
+                    <button onclick="clearAll()" class="danger">🗑️ Clear All</button>
+                </div>
+
+                <!-- Create Tree Form -->
+                <div class="form-group">
+                    <h3>1. Create New Tree</h3>
+                    <label for="treeName">Tree Name</label>
+                    <input type="text" id="treeName" placeholder="e.g., Learning C Programming" value="My Learning Journey">
+
+                    <label for="treeDescription">Description</label>
+                    <textarea id="treeDescription" placeholder="Describe your learning path...">A comprehensive journey through programming concepts</textarea>
+
+                    <label for="rootNodeTitle">Root Node Title</label>
+                    <input type="text" id="rootNodeTitle" placeholder="e.g., Hello World" value="Getting Started">
+
+                    <label for="rootNodeContent">Root Node Content</label>
+                    <textarea id="rootNodeContent" placeholder="What will you learn first?">The foundation of all learning - where every journey begins.</textarea>
+
+                    <button onclick="createTree()">🌱 Create Tree</button>
+                </div>
+
+                <!-- Add Node Form -->
+                <div class="form-group">
+                    <h3>2. Add Child Node</h3>
+                    <label for="parentNodeId">Parent Node ID</label>
+                    <input type="text" id="parentNodeId" placeholder="Select parent from tree structure">
+
+                    <label for="childNodeTitle">Child Node Title</label>
+                    <input type="text" id="childNodeTitle" placeholder="e.g., Variables & Data Types">
+
+                    <label for="childNodeContent">Content</label>
+                    <textarea id="childNodeContent" placeholder="What will this node teach?"></textarea>
+
+                    <label for="nodePosition">Position (order among siblings)</label>
+                    <input type="number" id="nodePosition" value="0" min="0">
+
+                    <button onclick="addChildNode()">🌿 Add Child Node</button>
+                </div>
+
+                <!-- Tree Actions -->
+                <div class="form-group">
+                    <h3>3. Tree Actions</h3>
+                    <input type="text" id="treeIdInput" placeholder="Tree ID for operations">
+                    <button onclick="getTreeStructure()">📋 Get Structure</button>
+                    <button onclick="getTreeNodes()">📝 Get All Nodes</button>
+                    <button onclick="deleteTree()" class="danger">🗑️ Delete Tree</button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Results & Visualization -->
+            <div class="panel">
+                <h2>📊 Results & Tree Structure</h2>
+
+                <!-- Tree Stats -->
+                <div class="stats" id="treeStats" style="display: none;">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalNodes">0</div>
+                        <div>Total Nodes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="maxDepth">0</div>
+                        <div>Max Depth</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="branchCount">0</div>
+                        <div>Branches</div>
+                    </div>
+                </div>
+
+                <!-- Tree Visualization -->
+                <div class="tree-visualization" id="treeVisualization">
+                    <div style="text-align: center; color: #7f8c8d; padding: 40px;">
+                        🌳 Tree structure will appear here<br>
+                        <small>Create or load a tree to see the hierarchical structure</small>
+                    </div>
+                </div>
+
+                <!-- API Response -->
+                <div class="response" id="apiResponse">Ready to test the Enhanced Tree API!
+
+Available endpoints:
+• POST /api/v1/trees - Create tree with root node
+• GET /api/v1/trees/:treeId - Get full tree structure
+• POST /api/v1/trees/:treeId/nodes - Add child node
+• GET /api/v1/trees/:treeId/nodes - Get all nodes
+• PUT /api/v1/trees/:treeId - Update tree metadata
+• DELETE /api/v1/trees/:treeId - Delete entire tree
+
+Click "Check API" to verify connection status.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8085/api/v1';
+        let currentTreeId = null;
+        let currentTreeData = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            checkApiHealth();
+        });
+
+        async function checkApiHealth() {
+            try {
+                const response = await fetch('http://localhost:8085/health');
+                const data = await response.json();
+
+                updateApiStatus(true, `API Healthy - ${data.database} connected`);
+                updateResponse('Health Check', data);
+            } catch (error) {
+                updateApiStatus(false, 'API Unavailable - Check if server is running');
+                updateResponse('Health Check Error', { error: error.message });
+            }
+        }
+
+        async function createTree() {
+            const treeData = {
+                name: document.getElementById('treeName').value,
+                description: document.getElementById('treeDescription').value,
+                is_public: true,
+                root_node: {
+                    title: document.getElementById('rootNodeTitle').value,
+                    content: document.getElementById('rootNodeContent').value,
+                    content_type: 'text',
+                    description: 'Root node of the learning tree'
+                }
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/trees`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(treeData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    currentTreeId = result.tree.id;
+                    currentTreeData = result;
+                    updateCurrentTreeInfo(result.tree, result.stats);
+                    visualizeTree(result);
+                    updateResponse('Tree Created Successfully', result);
+
+                    // Auto-fill tree ID for operations
+                    document.getElementById('treeIdInput').value = currentTreeId;
+                } else {
+                    updateResponse('Create Tree Error', result);
+                }
+            } catch (error) {
+                updateResponse('Create Tree Error', { error: error.message });
+            }
+        }
+
+        async function addChildNode() {
+            const parentNodeId = document.getElementById('parentNodeId').value;
+            const treeId = document.getElementById('treeIdInput').value || currentTreeId;
+
+            if (!parentNodeId || !treeId) {
+                alert('Please provide both Tree ID and Parent Node ID');
+                return;
+            }
+
+            const nodeData = {
+                title: document.getElementById('childNodeTitle').value,
+                content: document.getElementById('childNodeContent').value,
+                content_type: 'text',
+                description: 'Child node in learning progression',
+                parent_node_id: parentNodeId,
+                position: parseInt(document.getElementById('nodePosition').value),
+                tags: []
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/trees/${treeId}/nodes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(nodeData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    updateResponse('Node Added Successfully', result);
+                    // Refresh tree structure
+                    getTreeStructure();
+                    // Clear form
+                    document.getElementById('childNodeTitle').value = '';
+                    document.getElementById('childNodeContent').value = '';
+                } else {
+                    updateResponse('Add Node Error', result);
+                }
+            } catch (error) {
+                updateResponse('Add Node Error', { error: error.message });
+            }
+        }
+
+        async function getTreeStructure() {
+            const treeId = document.getElementById('treeIdInput').value || currentTreeId;
+
+            if (!treeId) {
+                alert('Please provide Tree ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/trees/${treeId}`);
+                const result = await response.json();
+
+                if (response.ok) {
+                    currentTreeData = result;
+                    updateCurrentTreeInfo(result.tree, result.stats);
+                    visualizeTree(result);
+                    updateResponse('Tree Structure Retrieved', result);
+                } else {
+                    updateResponse('Get Tree Error', result);
+                }
+            } catch (error) {
+                updateResponse('Get Tree Error', { error: error.message });
+            }
+        }
+
+        async function getTreeNodes() {
+            const treeId = document.getElementById('treeIdInput').value || currentTreeId;
+
+            if (!treeId) {
+                alert('Please provide Tree ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/trees/${treeId}/nodes`);
+                const result = await response.json();
+
+                if (response.ok) {
+                    updateResponse('Tree Nodes Retrieved', result);
+                } else {
+                    updateResponse('Get Nodes Error', result);
+                }
+            } catch (error) {
+                updateResponse('Get Nodes Error', { error: error.message });
+            }
+        }
+
+        async function deleteTree() {
+            const treeId = document.getElementById('treeIdInput').value || currentTreeId;
+
+            if (!treeId) {
+                alert('Please provide Tree ID');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete tree ${treeId}? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/trees/${treeId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    currentTreeId = null;
+                    currentTreeData = null;
+                    updateCurrentTreeInfo(null, null);
+                    clearTreeVisualization();
+                    updateResponse('Tree Deleted Successfully', result);
+                    document.getElementById('treeIdInput').value = '';
+                } else {
+                    updateResponse('Delete Tree Error', result);
+                }
+            } catch (error) {
+                updateResponse('Delete Tree Error', { error: error.message });
+            }
+        }
+
+        function loadSampleTree() {
+            // Fill form with sample data
+            document.getElementById('treeName').value = 'Learning C Programming';
+            document.getElementById('treeDescription').value = 'A complete journey through C programming language fundamentals';
+            document.getElementById('rootNodeTitle').value = 'Hello World';
+            document.getElementById('rootNodeContent').value = 'First program - printing "Hello, World!" to screen. The traditional starting point for any programming language.';
+
+            alert('Sample tree data loaded! Click "Create Tree" to create it.');
+        }
+
+        function clearAll() {
+            // Clear all forms
+            document.getElementById('treeName').value = '';
+            document.getElementById('treeDescription').value = '';
+            document.getElementById('rootNodeTitle').value = '';
+            document.getElementById('rootNodeContent').value = '';
+            document.getElementById('childNodeTitle').value = '';
+            document.getElementById('childNodeContent').value = '';
+            document.getElementById('parentNodeId').value = '';
+            document.getElementById('treeIdInput').value = '';
+
+            // Clear current tree
+            currentTreeId = null;
+            currentTreeData = null;
+            updateCurrentTreeInfo(null, null);
+            clearTreeVisualization();
+
+            // Clear response
+            updateResponse('Cleared', 'All forms and data cleared. Ready for new operations.');
+        }
+
+        function updateApiStatus(isHealthy, message) {
+            const indicator = document.getElementById('apiStatus');
+            const text = document.getElementById('apiStatusText');
+
+            indicator.className = `status-indicator ${isHealthy ? 'status-healthy' : 'status-error'}`;
+            text.textContent = message;
+        }
+
+        function updateCurrentTreeInfo(tree, stats) {
+            const infoDiv = document.getElementById('currentTreeInfo');
+
+            if (!tree) {
+                infoDiv.innerHTML = '<strong>No tree selected</strong><br>Create a new tree or load an existing one to get started.';
+                document.getElementById('treeStats').style.display = 'none';
+                return;
+            }
+
+            infoDiv.innerHTML = `
+                <strong>${tree.name}</strong> (ID: ${tree.id})<br>
+                <small>${tree.description}</small><br>
+                <small>Created: ${new Date(tree.created_at).toLocaleString()}</small>
+            `;
+
+            if (stats) {
+                document.getElementById('totalNodes').textContent = stats.total_nodes;
+                document.getElementById('maxDepth').textContent = stats.max_depth;
+                document.getElementById('branchCount').textContent = stats.branch_count;
+                document.getElementById('treeStats').style.display = 'grid';
+            }
+        }
+
+        function visualizeTree(treeData) {
+            const container = document.getElementById('treeVisualization');
+
+            if (!treeData || !treeData.root_node) {
+                clearTreeVisualization();
+                return;
+            }
+
+            let html = '<h3>🌳 Tree Structure</h3>';
+            html += renderNode(treeData.root_node, 0);
+
+            container.innerHTML = html;
+        }
+
+        function renderNode(node, level) {
+            const indent = '│  '.repeat(level);
+            const nodeClass = level === 0 ? 'root' : `level-${Math.min(level, 3)}`;
+
+            let html = `<div class="tree-line">${indent}├─ <span class="node ${nodeClass}" onclick="selectNode('${node.id}')">${node.title}</span></div>`;
+
+            if (node.children && node.children.length > 0) {
+                for (const child of node.children) {
+                    html += renderNode(child, level + 1);
+                }
+            }
+
+            return html;
+        }
+
+        function selectNode(nodeId) {
+            document.getElementById('parentNodeId').value = nodeId;
+            alert(`Selected node ${nodeId} as parent for new child node`);
+        }
+
+        function clearTreeVisualization() {
+            document.getElementById('treeVisualization').innerHTML = `
+                <div style="text-align: center; color: #7f8c8d; padding: 40px;">
+                    🌳 Tree structure will appear here<br>
+                    <small>Create or load a tree to see the hierarchical structure</small>
+                </div>
+            `;
+        }
+
+        function updateResponse(title, data) {
+            const responseDiv = document.getElementById('apiResponse');
+            const timestamp = new Date().toLocaleTimeString();
+
+            responseDiv.textContent = `[${timestamp}] ${title}\n\n${JSON.stringify(data, null, 2)}`;
+            responseDiv.scrollTop = responseDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
