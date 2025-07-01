@@ -9,17 +9,16 @@ We will tackle this using behavioural theory
 - Peer reviews, sources & citation (show clearly if missing or if reviewed).
   
 - Badges one can obtain: 
-	- Bridge builder: Help bridge the gaps between trees, this could be a special node that connects two nodes between trees, and could further clarify.
-	- Helping hand: Helps clarify peoples questions
-	- Challenger: Challenges existing nodes by creating challenge nodes
-	- 
+	- Helping hand: Helps answer peoples questions
+	- Challenger: Challenges existing nodes 
+	- Builder: Creates lots of nodes
+	- ...
 
 - Time based reputation system: points for Socratic behaviour, contributions, research, credibility, etc... Say a node gets flagged for being false, insights could be shown like: 60% of people that flagged this node as misinformation have high credibility. Points get worth less as time goes on, to level the playing field and avoid the Wikipedia problem where people with once high credibility get to do whatever they want without repercussions.
 
 - Complete transparency: logs visible (moderation / edits). For example: reclassification of a node.
 
 - No marginalisation, no hierarchies or class system.
-- 
 
 - Standardised communities/clubs (in the sense that communities cant govern over themselves like Reddit), where you have to gain a certain amount of trust to be able to contribute. this could diminish a bot problem where content could be misclassified by spamming "misinformation" or manipulating. the communities could be democratic too in some ways. Could drive up interaction with other people in cool ways. Community boards could show achievements, timelines and stats.
 
