@@ -1,282 +1,172 @@
-# 🌳 Human Intelligence - Learning Trees
+# 🌳 Neo4j Learning Trees Platform
 
-> **Where knowledge grows naturally** - A Neo4j-powered platform for cultivating learning through interconnected trees of knowledge
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-neon.svg)](LICENSE)
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)](https://golang.org/)
-[![Neo4j](https://img.shields.io/badge/Neo4j-5.15+-008CC1.svg)](https://neo4j.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6.svg)](https://typescriptlang.org/)
-
-## 🌱 Vision: Growing Knowledge Gardens
-
-Human Intelligence reimagines learning as **growing a garden of knowledge trees**. Each learner cultivates their own collection of trees, where every tree represents a focused learning journey.
-
-### 🔍 Two Views of Knowledge
-
-**🌳 Terrestrial View (Trees & Nodes)**
-- **Trees**: Focused learning paths - trains of thought that branch and grow
-- **Nodes**: Individual learning steps, experiments, insights, or discoveries
-- **Branching**: Natural divergence when exploration leads to new directions
-- **Growth**: Trees expand organically as learning progresses
-
-**🌌 Cosmic View (Tags & Forests)**  
-- **Tags**: Semantic connectors that group related trees across the knowledge space
-- **Forests**: Communities that form around shared tags and interests
-- **Connections**: Trees relate to each other through overlapping tags and concepts
-
-### 📚 Learning Journey Example
-
-```
-🌳 "Learning C Programming" Tree:
-Root → Hello World (print to screen)
-  ├── Variables & Data Types
-  ├── Control Flow (if/else, loops)
-  │   ├── FizzBuzz Implementation
-  │   └── Simple Calculator
-  ├── Functions & Scope
-  ├── Pointers & Memory
-  │   ├── Malloc/Free Experiments
-  │   ├── Memory Leak Debugging
-  │   └── Custom Allocator Research
-  └── Building a Todo CLI App
-
-🏷️ Tags: #programming, #c, #systems, #memory-management, #cli-tools
-```
-
-## 🛠️ Tech Stack
-
-### Core Architecture
-- **Database**: Neo4j 5.15+ (Native graph database for knowledge relationships)
-- **Backend**: Go 1.21+ with Gin framework (Fast, concurrent API server)
-- **Frontend**: SvelteKit + TypeScript (Reactive UI for knowledge visualization)
-- **Visualization**: D3.js (Interactive graph rendering)
-- **Cache**: Redis (Session management and performance)
-
-### Graph Data Model
-```cypher
-// Core entities and relationships
-(:User)-[:CREATED]->(:Tree)-[:CONTAINS]->(:Node)
-(:Node)-[:BRANCHES_TO]->(:Node)
-(:Tree)-[:TAGGED_WITH]->(:Tag)
-(:User)-[:FOLLOWS]->(:User)
-(:User)-[:EXPLORES]->(:Tree)
-```
+A knowledge-sharing platform built on Neo4j that organizes learning into hierarchical tree structures. Users can create learning trees with branching nodes, representing natural learning progressions from simple to complex concepts.
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Go 1.21+
-- Node.js 18+
-- Docker & Docker Compose
-
-### 🌟 Development Scripts
-
-We've built convenient development tools for a smooth experience:
-
 ```bash
-# Start everything (Neo4j + Backend + Frontend)
-./dev.sh start
-
-# Start just the backend
-./dev.sh backend
-
-# Check what's running
-./dev.sh status
-
-# Stop everything
-./dev.sh stop
-
-# Quick manual start
+# Start the platform
 ./quick-start.sh
 ```
 
-### 🎯 Step-by-Step Setup
+This will:
+1. Start Neo4j and Redis via Docker Compose
+2. Build the Go backend
+3. Start the server on port 8085
 
-1. **Clone and Navigate**
-   ```bash
-   git clone https://github.com/your-org/human-intelligence.git
-   cd human-intelligence
-   ```
+## 🏗️ Architecture
 
-2. **Start the Knowledge Platform**
-   ```bash
-   ./dev.sh start
-   ```
+- **Backend**: Go with Gin framework
+- **Database**: Neo4j 5.15 (graph database)
+- **Cache**: Redis 7
+- **Development**: Docker Compose for services
 
-3. **Access Your Garden**
-   - **Frontend**: http://localhost:3000
-   - **API**: http://localhost:8085
-   - **Neo4j Browser**: http://localhost:7474 (neo4j/hi_password)
-   - **Test Page**: `open test-platform.html`
+## 📊 API Endpoints
 
-## 🌿 MVP Features
+### Trees (Hierarchical Learning Paths)
+- `POST /api/v1/trees` - Create tree with root node
+- `GET /api/v1/trees/{treeId}` - Get complete tree structure
+- `PUT /api/v1/trees/{treeId}` - Update tree metadata
+- `DELETE /api/v1/trees/{treeId}` - Delete entire tree
+- `POST /api/v1/trees/{treeId}/nodes` - Add child node to tree
+- `GET /api/v1/trees/{treeId}/nodes` - Get all nodes in tree
 
-### ✅ Foundation Complete
-- **Graph Database**: Neo4j with optimized schema for learning trees
-- **User Management**: Create accounts and manage learning profiles
-- **REST API**: Complete CRUD operations for all entities
-- **Graph Visualization**: D3.js powered knowledge maps
-- **Development Tools**: Streamlined development workflow
+### Nodes (Learning Content)
+- `POST /api/v1/nodes` - Create standalone node
+- `GET /api/v1/nodes/{nodeId}` - Get node details
+- `GET /api/v1/nodes?q=search` - Search nodes
 
-### 🎯 Next: Core Learning Features
-- **Tree Creation**: Start new learning journeys
-- **Node Management**: Add insights, experiments, and discoveries
-- **Branching Logic**: Handle natural learning divergence
-- **Tag System**: Semantic organization and discovery
-- **Tree Exploration**: Browse and fork others' learning paths
+### Users & Tags
+- `POST /api/v1/users` - Create user
+- `GET /api/v1/users/{userId}` - Get user details
+- `POST /api/v1/tags` - Create tag
+- `GET /api/v1/tags/popular` - Get popular tags
+- `POST /api/v1/nodes/{nodeId}/tags/{tagName}` - Tag a node
 
-### 🔮 Future Growth
-- **Forest Communities**: Collaborative learning groups
-- **Learning Analytics**: Progress tracking and insights
-- **AI Suggestions**: Intelligent path recommendations
-- **Real-time Collaboration**: Live learning sessions
-- **Mobile Experience**: Native apps for learning on-the-go
+### Visualization
+- `GET /api/v1/graph/visualization/{userId}` - Get graph data for D3.js
+
+## 🌱 Example: Creating a Learning Tree
+
+```bash
+# 1. Create a learning tree with root node
+curl -X POST http://localhost:8085/api/v1/trees \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Learning C Programming",
+    "description": "Complete journey through C programming",
+    "is_public": true,
+    "root_node": {
+      "title": "Hello World",
+      "content": "First program - printing to screen",
+      "content_type": "text"
+    }
+  }'
+
+# 2. Add child nodes to create branches
+curl -X POST http://localhost:8085/api/v1/trees/{treeId}/nodes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Variables & Data Types",
+    "content": "Learning about int, char, float...",
+    "parent_node_id": "{rootNodeId}",
+    "position": 1
+  }'
+```
+
+## 🎯 Core Concepts
+
+### Trees (Terrestrial View)
+- **Learning Paths**: Focused, hierarchical learning journeys
+- **Root Nodes**: Starting points (e.g., "Hello World")
+- **Branching**: Natural progression from simple to complex
+- **Hierarchical**: Parent-child relationships between concepts
+
+### Tags (Cosmic View)
+- **Semantic Connections**: Link related trees across domains
+- **Community Formation**: Users discover content through tags
+- **Cross-Pollination**: Bridge different learning paths
+
+## 🧪 Testing
+
+### Web Interface
+Open `test-tree-api.html` in your browser for a complete testing interface with:
+- Tree creation and management
+- Node addition with hierarchy
+- Visual tree structure display
+- Real-time API testing
+
+### Health Check
+```bash
+curl http://localhost:8085/health
+```
+
+### Manual Testing
+```bash
+# Create user
+curl -X POST http://localhost:8085/api/v1/users \
+  -H "Content-Type: application/json" \
+  -d '{"username": "learner", "email": "test@example.com"}'
+
+# Search nodes
+curl "http://localhost:8085/api/v1/nodes?q=programming"
+
+# Get popular tags
+curl http://localhost:8085/api/v1/tags/popular
+```
 
 ## 🔧 Development
 
-### API Endpoints
+### Project Structure
+```
+backend/
+├── cmd/server/          # Main application
+├── internal/
+│   ├── database/        # Neo4j service
+│   ├── handlers/        # HTTP handlers
+│   └── models/          # Data models
+├── go.mod
+└── go.sum
 
-```bash
-# Trees (Learning Paths)
-POST   /api/v1/trees              # Create new learning tree
-GET    /api/v1/trees/:id          # Get tree with all nodes
-PUT    /api/v1/trees/:id          # Update tree metadata
-DELETE /api/v1/trees/:id          # Delete tree
-
-# Nodes (Learning Steps)
-POST   /api/v1/nodes              # Create new learning node
-GET    /api/v1/nodes/:id          # Get node details
-PUT    /api/v1/nodes/:id          # Update node content
-DELETE /api/v1/nodes/:id          # Delete node
-POST   /api/v1/trees/:treeId/nodes/:nodeId  # Add node to tree
-
-# Tags (Semantic Connectors)
-POST   /api/v1/tags               # Create new tag
-GET    /api/v1/tags/popular       # Get popular tags
-POST   /api/v1/nodes/:nodeId/tags/:tagName  # Tag a node
-
-# Discovery & Visualization
-GET    /api/v1/search?q=:query    # Search trees and nodes
-GET    /api/v1/graph/visualization/:userId  # Get graph data for D3.js
+docker-compose.yml       # Services (Neo4j, Redis)
+quick-start.sh          # Development setup
 ```
 
-### Graph Queries
+### Key Features Implemented
+- ✅ Hierarchical tree creation with root nodes
+- ✅ Parent-child node relationships
+- ✅ Tree structure retrieval with statistics
+- ✅ Node branching and positioning
+- ✅ Tag system for semantic connections
+- ✅ Search functionality across content
+- ✅ Graph visualization data endpoints
+- ✅ User management
+- ✅ Health monitoring
 
+### Graph Schema
 ```cypher
--- Find a user's learning forest
-MATCH (u:User {id: $userId})-[:CREATED]->(t:Tree)
-OPTIONAL MATCH (t)-[:CONTAINS]->(n:Node)
-RETURN u, t, collect(n) as nodes
-
--- Discover related trees through tags
-MATCH (t1:Tree)-[:TAGGED_WITH]->(tag:Tag)<-[:TAGGED_WITH]-(t2:Tree)
-WHERE t1.id = $treeId AND t1 <> t2
-RETURN t2, tag, count(*) as shared_tags
-ORDER BY shared_tags DESC
-
--- Find branching paths in a tree
-MATCH (tree:Tree)-[:CONTAINS]->(root:Node)
-WHERE tree.id = $treeId AND NOT (root)<-[:BRANCHES_TO]-()
-MATCH path = (root)-[:BRANCHES_TO*]->(leaf:Node)
-WHERE NOT (leaf)-[:BRANCHES_TO]->()
-RETURN path
+# Core relationships
+(:User)-[:CREATED]->(:Tree)
+(:Tree)-[:CONTAINS]->(:Node)
+(:Node)-[:PARENT_OF]->(:Node)
+(:Node)-[:CHILD_OF]->(:Node)
+(:Node)-[:TAGGED]->(:Tag)
 ```
 
-### Development Commands
+## 🚧 Next Steps
 
-```bash
-# Start development environment
-./dev.sh start                    # Full stack
-./dev.sh backend                  # Backend only
-./dev.sh services                 # Databases only
+1. **Enhanced UI**: Build React/Svelte frontend
+2. **Tree Forking**: Copy and extend existing trees
+3. **Collaboration**: Multi-user tree editing
+4. **AI Integration**: Smart content suggestions
+5. **Advanced Search**: Full-text and semantic search
 
-# Check status
-./dev.sh status                   # Show running services
-./dev.sh logs                     # View logs
+## 🔗 Services
 
-# Quick actions
-./dev.sh test                     # Open test page
-./dev.sh neo4j                    # Open Neo4j browser
-./dev.sh stop                     # Stop everything
-```
+- **Backend**: http://localhost:8085
+- **Neo4j Browser**: http://localhost:7474 (neo4j/hi_password)
+- **Redis**: localhost:6379
 
-## 🧪 Testing Your Garden
+## 📝 License
 
-Open the test interface to explore the platform:
-
-```bash
-# Open test page
-./dev.sh test
-
-# Or manually
-open test-platform.html
-```
-
-Test key features:
-- ✅ Create users and trees
-- ✅ Add nodes to learning paths  
-- ✅ Apply semantic tags
-- ✅ Visualize knowledge graphs
-- ✅ Search across the forest
-
-## 🗂️ Project Structure
-
-```
-human-intelligence/
-├── backend/                 # Go API server
-│   ├── cmd/server/         # Application entry point
-│   ├── internal/models/    # Graph data models
-│   └── internal/database/  # Neo4j integration
-├── frontend/               # SvelteKit interface
-│   ├── src/lib/components/ # UI components
-│   └── src/routes/         # Application pages
-├── scripts/dev/            # Development tools
-│   ├── start-dev.sh       # Full stack startup
-│   ├── start-backend.sh   # Backend only
-│   └── stop-dev.sh        # Graceful shutdown
-├── dev.sh                 # Main development CLI
-├── quick-start.sh         # Simple manual start
-└── test-platform.html    # Development test interface
-```
-
-## 🤝 Contributing
-
-We're building the future of collaborative learning! 
-
-### Development Workflow
-1. **Start your environment**: `./dev.sh start`
-2. **Make your changes**: Edit code with hot reloading
-3. **Test your garden**: Use the test interface
-4. **Check the graph**: Explore relationships in Neo4j Browser
-5. **Submit your growth**: Create a pull request
-
-### Code Philosophy
-- **Graph-First**: Design with relationships in mind
-- **Learning-Centered**: Every feature should enhance the learning experience
-- **Natural Growth**: Features should feel organic, not forced
-- **Community Focused**: Enable collaboration without compromising personal learning
-
-## 🎯 Vision: The Learning Future
-
-We're creating a platform where:
-- **Learning is Visual**: See your knowledge grow like a living garden
-- **Connections Emerge**: Discover relationships between different areas of study
-- **Communities Form**: Find others on similar learning journeys
-- **Knowledge Persists**: Build a permanent record of your intellectual growth
-- **Wisdom Spreads**: Share insights that help others learn faster
-
-**Join us in growing the forest of human knowledge.** 🌳🌲🌴
-
-## 📜 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
----
-
-<div align="center">
-
-**Made with 🧠 for learners, by learners**
-
-*Human Intelligence © 2025*
-
-</div>
+MIT License - see LICENSE file for details.
