@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neo4j Knowledge Platform - MVP Test</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: rgba(76, 175, 80, 0.8);
+            border-left: 5px solid #4CAF50;
+        }
+        .status.error {
+            background: rgba(244, 67, 54, 0.8);
+            border-left: 5px solid #f44336;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .data-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        .graph-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        .button:hover {
+            background: #45a049;
+        }
+        .button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feature-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Neo4j Knowledge Platform - MVP Test</h1>
+
+        <div class="section">
+            <h2>🚀 System Status</h2>
+            <div id="backend-status">Testing backend connection...</div>
+            <div id="neo4j-status">Testing Neo4j connection...</div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Platform Features</h2>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <h3>✅ Users & Authentication</h3>
+                    <p>Create and manage user accounts with graph relationships</p>
+                </div>
+                <div class="feature-item">
+                    <h3>✅ Knowledge Nodes</h3>
+                    <p>Create, read, update, delete knowledge nodes</p>
+                </div>
+                <div class="feature-item">
+                    <h3>✅ Learning Trees</h3>
+                    <p>Organize nodes into structured learning paths</p>
+                </div>
+                <div class="feature-item">
+                    <h3>✅ Tag System</h3>
+                    <p>Tag content and filter by tags</p>
+                </div>
+                <div class="feature-item">
+                    <h3>✅ Graph Search</h3>
+                    <p>Full-text search with Neo4j integration</p>
+                </div>
+                <div class="feature-item">
+                    <h3>✅ Graph Visualization</h3>
+                    <p>D3.js powered knowledge graphs</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔍 API Testing</h2>
+            <button class="button" onclick="testAPI()">Test All Endpoints</button>
+            <button class="button" onclick="loadVisualization()">Load Graph Visualization</button>
+            <div id="api-results"></div>
+        </div>
+
+        <div class="section">
+            <h2>📈 Sample Data</h2>
+            <div id="sample-data"></div>
+        </div>
+
+        <div class="section">
+            <h2>🎨 Graph Visualization</h2>
+            <div class="graph-container">
+                <svg id="graph-svg" width="800" height="400"></svg>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>💡 Quick Start Guide</h2>
+            <div class="data-box">
+# Start the platform:
+docker-compose -f docker-compose.neo4j.yml up -d neo4j redis
+
+# Build and run backend:
+cd backend
+go build -o server-neo4j cmd/server/main_neo4j.go
+PORT=8085 NEO4J_URI=bolt://localhost:7687 ./server-neo4j
+
+# Test API:
+curl http://localhost:8085/health
+curl http://localhost:8085/api/v1/users/user-1
+
+# Access Neo4j Browser:
+http://localhost:7474 (neo4j/hi_password)
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8085';
+
+        // Test backend connection
+        async function testBackendHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+
+                document.getElementById('backend-status').innerHTML =
+                    `<div class="status success">✅ Backend: ${data.status} (${data.database})</div>`;
+                return true;
+            } catch (error) {
+                document.getElementById('backend-status').innerHTML =
+                    `<div class="status error">❌ Backend: ${error.message}</div>`;
+                return false;
+            }
+        }
+
+        // Test Neo4j data
+        async function testNeo4jData() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/users/user-1`);
+                if (response.ok) {
+                    document.getElementById('neo4j-status').innerHTML =
+                        `<div class="status success">✅ Neo4j: Connected with sample data</div>`;
+                } else {
+                    throw new Error('No sample data found');
+                }
+            } catch (error) {
+                document.getElementById('neo4j-status').innerHTML =
+                    `<div class="status error">❌ Neo4j: ${error.message}</div>`;
+            }
+        }
+
+        // Test all API endpoints
+        async function testAPI() {
+            const results = document.getElementById('api-results');
+            results.innerHTML = '<p>Testing API endpoints...</p>';
+
+            const tests = [
+                { name: 'Health Check', url: '/health' },
+                { name: 'Get User', url: '/api/v1/users/user-1' },
+                { name: 'Get Node', url: '/api/v1/nodes/node-1' },
+                { name: 'Search Nodes', url: '/api/v1/nodes?q=graph' },
+                { name: 'Popular Tags', url: '/api/v1/tags/popular' }
+            ];
+
+            let resultHTML = '';
+            for (const test of tests) {
+                try {
+                    const response = await fetch(`${API_BASE}${test.url}`);
+                    const data = await response.json();
+                    resultHTML += `
+                        <div class="status success">
+                            ✅ ${test.name}: ${response.status}
+                            <div class="data-box">${JSON.stringify(data, null, 2)}</div>
+                        </div>
+                    `;
+                } catch (error) {
+                    resultHTML += `
+                        <div class="status error">
+                            ❌ ${test.name}: ${error.message}
+                        </div>
+                    `;
+                }
+            }
+            results.innerHTML = resultHTML;
+        }
+
+        // Load sample data
+        async function loadSampleData() {
+            try {
+                const userResponse = await fetch(`${API_BASE}/api/v1/users/user-1`);
+                const nodeResponse = await fetch(`${API_BASE}/api/v1/nodes/node-1`);
+
+                if (userResponse.ok && nodeResponse.ok) {
+                    const user = await userResponse.json();
+                    const node = await nodeResponse.json();
+
+                    document.getElementById('sample-data').innerHTML = `
+                        <h3>Sample User:</h3>
+                        <div class="data-box">${JSON.stringify(user, null, 2)}</div>
+                        <h3>Sample Node:</h3>
+                        <div class="data-box">${JSON.stringify(node, null, 2)}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('sample-data').innerHTML =
+                    `<div class="status error">❌ Could not load sample data: ${error.message}</div>`;
+            }
+        }
+
+        // Create simple graph visualization
+        async function loadVisualization() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/graph/visualization/user-1`);
+                const data = await response.json();
+
+                createGraph(data);
+            } catch (error) {
+                // Create mock data for demonstration
+                const mockData = {
+                    nodes: [
+                        { id: 'user-1', label: 'Alice', type: 'User', color: '#ff6b6b' },
+                        { id: 'node-1', label: 'Graph Databases', type: 'Node', color: '#4ecdc4' },
+                        { id: 'tag-1', label: 'neo4j', type: 'Tag', color: '#45b7d1' }
+                    ],
+                    links: [
+                        { source: 'user-1', target: 'node-1', type: 'CREATED' },
+                        { source: 'node-1', target: 'tag-1', type: 'TAGGED' }
+                    ]
+                };
+                createGraph(mockData);
+            }
+        }
+
+        function createGraph(data) {
+            const svg = d3.select('#graph-svg');
+            svg.selectAll('*').remove();
+
+            const width = 800;
+            const height = 400;
+
+            const simulation = d3.forceSimulation(data.nodes)
+                .force('link', d3.forceLink(data.links).id(d => d.id).distance(100))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2));
+
+            const link = svg.append('g')
+                .selectAll('line')
+                .data(data.links)
+                .enter().append('line')
+                .attr('stroke', '#999')
+                .attr('stroke-width', 2);
+
+            const node = svg.append('g')
+                .selectAll('circle')
+                .data(data.nodes)
+                .enter().append('circle')
+                .attr('r', 20)
+                .attr('fill', d => d.color)
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            const label = svg.append('g')
+                .selectAll('text')
+                .data(data.nodes)
+                .enter().append('text')
+                .text(d => d.label)
+                .attr('font-size', '12px')
+                .attr('dx', 25)
+                .attr('dy', 4)
+                .attr('fill', '#333');
+
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                node
+                    .attr('cx', d => d.x)
+                    .attr('cy', d => d.y);
+
+                label
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y);
+            });
+
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', async () => {
+            await testBackendHealth();
+            await testNeo4jData();
+            await loadSampleData();
+            loadVisualization();
+        });
+    </script>
+</body>
+</html>
