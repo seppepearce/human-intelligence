@@ -277,6 +277,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 **Made with 🧠 for learners, by learners**
 
-*Human Intelligence © 2024*
+*Human Intelligence © 2025*
 
 </div>
