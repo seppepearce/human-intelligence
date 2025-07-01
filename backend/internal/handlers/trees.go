@@ -530,7 +530,7 @@ func (h *TreeHandler) createParentChildRelationship(ctx context.Context, parentI
 		"child_id":  childID,
 	}
 
-	_, err := h.neo4j.ExecuteWrite(ctx, query, params)
+	err := h.neo4j.ExecuteWrite(ctx, query, params)
 	return err
 }
 
@@ -546,7 +546,7 @@ func (h *TreeHandler) incrementTreeNodeCount(ctx context.Context, treeID string)
 		"tree_id": treeID,
 	}
 
-	_, err := h.neo4j.ExecuteWrite(ctx, query, params)
+	err := h.neo4j.ExecuteWrite(ctx, query, params)
 	return err
 }
 
@@ -577,7 +577,7 @@ func (h *TreeHandler) updateTreeMetadata(ctx context.Context, treeID, name, desc
 		RETURN t
 	`, strings.Join(setParts, ", "))
 
-	_, err := h.neo4j.ExecuteWrite(ctx, query, params)
+	err := h.neo4j.ExecuteWrite(ctx, query, params)
 	return err
 }
 
@@ -592,7 +592,7 @@ func (h *TreeHandler) deleteTreeAndNodes(ctx context.Context, treeID string) err
 		"tree_id": treeID,
 	}
 
-	_, err := h.neo4j.ExecuteWrite(ctx, query, params)
+	err := h.neo4j.ExecuteWrite(ctx, query, params)
 	return err
 }
 

@@ -179,25 +179,22 @@ func (s *Neo4jService) ExecuteQuery(ctx context.Context, query string, params ma
 }
 
 // ExecuteWrite executes a write query
-func (s *Neo4jService) ExecuteWrite(ctx context.Context, query string, params map[string]interface{}) (*neo4j.ResultSummary, error) {
+func (s *Neo4jService) ExecuteWrite(ctx context.Context, query string, params map[string]interface{}) error {
 	session := s.driver.NewSession(ctx, neo4j.SessionConfig{
 		DatabaseName: s.database,
 	})
 	defer session.Close(ctx)
 
-	result, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
 		result, err := tx.Run(ctx, query, params)
 		if err != nil {
 			return nil, err
 		}
-		return result.Consume(ctx)
+		_, err = result.Consume(ctx)
+		return nil, err
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
-	return result.(*neo4j.ResultSummary), nil
+	return err
 }
 
 // User operations
@@ -228,6 +225,14 @@ func (s *Neo4jService) CreateUser(ctx context.Context, user *models.User) error 
 		RETURN u
 	`
 
+	// Handle preferences - Neo4j doesn't like empty maps
+	var preferences interface{}
+	if len(user.Preferences) > 0 {
+		preferences = user.Preferences
+	} else {
+		preferences = nil
+	}
+
 	params := map[string]interface{}{
 		"id":            user.ID,
 		"username":      user.Username,
@@ -239,9 +244,9 @@ func (s *Neo4jService) CreateUser(ctx context.Context, user *models.User) error 
 		"bio":           user.Bio,
 		"is_active":     user.IsActive,
 		"is_verified":   user.IsVerified,
-		"preferences":   user.Preferences,
+		"preferences":   preferences,
 	}
-	_, err := s.ExecuteWrite(ctx, query, params)
+	err := s.ExecuteWrite(ctx, query, params)
 	return err
 }
 
@@ -317,7 +322,7 @@ func (s *Neo4jService) UpdateUser(ctx context.Context, user *models.User) error 
 		"props": props,
 	}
 
-	_, err := s.ExecuteWrite(ctx, query, params)
+	err := s.ExecuteWrite(ctx, query, params)
 	return err
 }
 
@@ -348,6 +353,14 @@ func (s *Neo4jService) CreateNode(ctx context.Context, node *models.Node) error 
 		RETURN n
 	`
 
+	// Handle metadata - Neo4j doesn't like empty maps
+	var metadata interface{}
+	if len(node.Metadata) > 0 {
+		metadata = node.Metadata
+	} else {
+		metadata = nil
+	}
+
 	params := map[string]interface{}{
 		"id":             node.ID,
 		"title":          node.Title,
@@ -356,14 +369,14 @@ func (s *Neo4jService) CreateNode(ctx context.Context, node *models.Node) error 
 		"description":    node.Description,
 		"is_public":      node.IsPublic,
 		"is_published":   node.IsPublished,
-		"metadata":       node.Metadata,
+		"metadata":       metadata,
 		"owner_id":       node.OwnerID,
 		"parent_node_id": node.ParentNodeID,
 		"level":          node.Level,
 		"position":       node.Position,
 	}
 
-	_, err := s.ExecuteWrite(ctx, query, params)
+	err := s.ExecuteWrite(ctx, query, params)
 	return err
 }
 
@@ -618,7 +631,7 @@ func (s *Neo4jService) CreateTree(ctx context.Context, tree *models.Tree) error 
 		"parent_tree_id": tree.ParentTreeID,
 	}
 
-	_, err := s.ExecuteWrite(ctx, query, params)
+	err := s.ExecuteWrite(ctx, query, params)
 	return err
 }
 
@@ -638,7 +651,7 @@ func (s *Neo4jService) AddNodeToTree(ctx context.Context, treeID, nodeID string,
 		"position": position,
 	}
 
-	_, err := s.ExecuteWrite(ctx, query, params)
+	err := s.ExecuteWrite(ctx, query, params)
 	return err
 }
 
@@ -662,7 +675,7 @@ func (s *Neo4jService) CreateTag(ctx context.Context, tag *models.Tag) error {
 		"name":  tag.Name,
 		"color": tag.Color,
 	}
-	_, err := s.ExecuteWrite(ctx, query, params)
+	err := s.ExecuteWrite(ctx, query, params)
 	return err
 }
 
@@ -682,7 +695,7 @@ func (s *Neo4jService) TagNode(ctx context.Context, nodeID, tagName string) erro
 		"tag_name": tagName,
 	}
 
-	_, err := s.ExecuteWrite(ctx, query, params)
+	err := s.ExecuteWrite(ctx, query, params)
 	return err
 }
 
