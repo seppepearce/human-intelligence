@@ -11,7 +11,7 @@ echo ""
 
 # Step 1: Start Neo4j and Redis
 echo "Step 1: Starting Neo4j and Redis..."
-docker-compose -f docker-compose.neo4j.yml up -d neo4j redis
+docker-compose up -d neo4j redis
 
 echo "⏳ Waiting 15 seconds for Neo4j to initialize..."
 sleep 15
@@ -19,11 +19,11 @@ sleep 15
 # Step 2: Test Neo4j connection
 echo ""
 echo "Step 2: Testing Neo4j connection..."
-if docker-compose -f docker-compose.neo4j.yml exec -T neo4j cypher-shell -u neo4j -p hi_password "RETURN 'Connected!' as status" 2>/dev/null; then
+if docker-compose exec -T neo4j cypher-shell -u neo4j -p hi_password "RETURN 'Connected!' as status" 2>/dev/null; then
     echo "✅ Neo4j is ready!"
 else
     echo "❌ Neo4j not ready yet. You may need to wait longer or check logs:"
-    echo "   docker-compose -f docker-compose.neo4j.yml logs neo4j"
+    echo "   docker-compose logs neo4j"
     echo ""
     echo "Continue anyway? (y/n)"
     read -r response
@@ -36,7 +36,7 @@ fi
 echo ""
 echo "Step 3: Building Go backend..."
 cd backend
-go build -o server-neo4j cmd/server/main_neo4j.go
+go build -o server cmd/server/main.go
 echo "✅ Backend built!"
 
 # Step 4: Start backend
@@ -60,4 +60,4 @@ export NEO4J_PASSWORD=hi_password
 export NEO4J_DATABASE=knowledgegraph
 export GIN_MODE=debug
 
-./server-neo4j
+./server

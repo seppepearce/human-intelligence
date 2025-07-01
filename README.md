@@ -1,405 +1,281 @@
-# 🧠 Human Intelligence (HI!)
+# 🌳 Human Intelligence - Learning Trees
 
-> **Where AI augments HI** - A factorial multiplier to human intelligence
+> **Where knowledge grows naturally** - A Neo4j-powered platform for cultivating learning through interconnected trees of knowledge
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-neon.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)](https://golang.org/)
-[![Node Version](https://img.shields.io/badge/Node-18+-339933.svg)](https://nodejs.org/)
-[![SvelteKit](https://img.shields.io/badge/SvelteKit-4.0+-FF3E00.svg)](https://kit.svelte.dev/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://postgresql.org/)
+[![Neo4j](https://img.shields.io/badge/Neo4j-5.15+-008CC1.svg)](https://neo4j.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6.svg)](https://typescriptlang.org/)
 
-## 🌟 Vision
+## 🌱 Vision: Growing Knowledge Gardens
 
-Human Intelligence is a **collaborative learning platform** that revolutionizes how knowledge is shared and acquired. Think of it as the love child of GitHub, Stack Overflow, and a modern forum - but specifically designed for learning with AI augmentation.
+Human Intelligence reimagines learning as **growing a garden of knowledge trees**. Each learner cultivates their own collection of trees, where every tree represents a focused learning journey.
 
-### Core Concept
-- **Nodes**: Atomic learning units (text, video, code, quizzes, etc.)
-- **Learning Paths**: Git-like sequences of nodes that can be forked, merged, and evolved
-- **TLDRs**: 140-character summaries users create after completing paths
-- **Live Forum**: Real-time visualization of learning activity across the platform
-- **AI Integration**: LocalAI for free tier, premium APIs for paid features
+### 🔍 Two Views of Knowledge
 
-## 🎨 Aesthetic
+**🌳 Terrestrial View (Trees & Nodes)**
+- **Trees**: Focused learning paths - trains of thought that branch and grow
+- **Nodes**: Individual learning steps, experiments, insights, or discoveries
+- **Branching**: Natural divergence when exploration leads to new directions
+- **Growth**: Trees expand organically as learning progresses
 
-**Zoomer shitpost meets boomer messageboard with hacker flair**
+**🌌 Cosmic View (Tags & Forests)**  
+- **Tags**: Semantic connectors that group related trees across the knowledge space
+- **Forests**: Communities that form around shared tags and interests
+- **Connections**: Trees relate to each other through overlapping tags and concepts
 
-- 🌈 **Vaporwave** color palette (neon pink, cyan, purple)
-- 🏛️ **Greek marble** textures for that classical knowledge vibe
-- 💻 **Terminal green** for the hacker aesthetic
-- ⚡ **Real-time animations** showing learning activity
-- 🎮 **Retro grid** backgrounds and neon glows
+### 📚 Learning Journey Example
 
-## 🚀 Features
+```
+🌳 "Learning C Programming" Tree:
+Root → Hello World (print to screen)
+  ├── Variables & Data Types
+  ├── Control Flow (if/else, loops)
+  │   ├── FizzBuzz Implementation
+  │   └── Simple Calculator
+  ├── Functions & Scope
+  ├── Pointers & Memory
+  │   ├── Malloc/Free Experiments
+  │   ├── Memory Leak Debugging
+  │   └── Custom Allocator Research
+  └── Building a Todo CLI App
 
-### MVP Features
-- ✅ User authentication and profiles
-- ✅ Create and manage learning nodes
-- ✅ Build learning paths with git-like branching
-- ✅ Fork and merge learning paths
-- ✅ TLDR summaries and community voting
-- ✅ Real-time activity feed
-- ✅ Basic text search
-- ✅ Responsive vaporwave UI
-
-### Planned Features
-- 🔮 **AI-Powered Search**: Semantic search with embeddings
-- 🤖 **AI Recommendations**: Personalized learning suggestions
-- 🧩 **Plugin System**: Custom node types (LaTeX, Jupyter, Wolfram, etc.)
-- 👥 **Collaboration Tools**: Real-time editing and discussion
-- 🏫 **Classroom Mode**: Teacher tools and grading
-- 📊 **Analytics**: Learning progress and insights
-- 🌐 **Internationalization**: Multi-language support
-- 📱 **Mobile App**: Native iOS/Android apps
+🏷️ Tags: #programming, #c, #systems, #memory-management, #cli-tools
+```
 
 ## 🛠️ Tech Stack
 
-### Backend
-- **Language**: Go 1.21+
-- **Framework**: Gin (HTTP) + Gorilla WebSocket
-- **Database**: PostgreSQL 15+ with JSONB
-- **Search**: Elasticsearch/Meilisearch (configurable)
-- **Cache**: Redis (optional)
-- **AI**: LocalAI (free) + OpenAI/Anthropic (premium)
+### Core Architecture
+- **Database**: Neo4j 5.15+ (Native graph database for knowledge relationships)
+- **Backend**: Go 1.21+ with Gin framework (Fast, concurrent API server)
+- **Frontend**: SvelteKit + TypeScript (Reactive UI for knowledge visualization)
+- **Visualization**: D3.js (Interactive graph rendering)
+- **Cache**: Redis (Session management and performance)
 
-### Frontend
-- **Framework**: SvelteKit 4.0+
-- **Styling**: Tailwind CSS with custom vaporwave theme
-- **Real-time**: WebSocket client
-- **Charts**: D3.js for learning path visualizations
-- **Animations**: Custom CSS animations + Svelte transitions
-
-### Infrastructure
-- **Containerization**: Docker + Docker Compose
-- **Deployment**: Kubernetes manifests included
-- **CI/CD**: GitHub Actions
-- **Monitoring**: Prometheus + Grafana dashboards
-
-## 🏗️ Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   SvelteKit     │    │   Go Backend    │    │   PostgreSQL    │
-│   Frontend      │◄──►│   API Server    │◄──►│   Database      │
-│                 │    │                 │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         ▲                       ▲                       ▲
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   WebSocket     │    │   LocalAI       │    │   Redis Cache   │
-│   Real-time     │    │   AI Services   │    │   (Optional)    │
-│                 │    │                 │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+### Graph Data Model
+```cypher
+// Core entities and relationships
+(:User)-[:CREATED]->(:Tree)-[:CONTAINS]->(:Node)
+(:Node)-[:BRANCHES_TO]->(:Node)
+(:Tree)-[:TAGGED_WITH]->(:Tag)
+(:User)-[:FOLLOWS]->(:User)
+(:User)-[:EXPLORES]->(:Tree)
 ```
 
-## 🚦 Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 - Go 1.21+
 - Node.js 18+
-- PostgreSQL 15+
-- Docker & Docker Compose (recommended)
+- Docker & Docker Compose
 
-### Option 1: Docker Compose (Recommended)
+### 🌟 Development Scripts
 
-```bash
-# Clone the repository
-git clone https://github.com/your-org/human-intelligence.git
-cd human-intelligence
-
-# Start all services
-docker-compose up -d
-
-# The app will be available at:
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8080
-# Database: localhost:5432
-```
-
-### Option 2: Manual Setup
-
-#### Backend Setup
+We've built convenient development tools for a smooth experience:
 
 ```bash
-cd backend
+# Start everything (Neo4j + Backend + Frontend)
+./dev.sh start
 
-# Copy environment config
-cp .env.example .env
-# Edit .env with your database credentials
+# Start just the backend
+./dev.sh backend
 
-# Install dependencies
-go mod download
+# Check what's running
+./dev.sh status
 
-# Run database migrations
-go run cmd/server/main.go migrate
+# Stop everything
+./dev.sh stop
 
-# Start the server
-go run cmd/server/main.go
+# Quick manual start
+./quick-start.sh
 ```
 
-#### Frontend Setup
+### 🎯 Step-by-Step Setup
 
-```bash
-cd frontend
+1. **Clone and Navigate**
+   ```bash
+   git clone https://github.com/your-org/human-intelligence.git
+   cd human-intelligence
+   ```
 
-# Install dependencies
-npm install
+2. **Start the Knowledge Platform**
+   ```bash
+   ./dev.sh start
+   ```
 
-# Start development server
-npm run dev
-```
+3. **Access Your Garden**
+   - **Frontend**: http://localhost:3000
+   - **API**: http://localhost:8085
+   - **Neo4j Browser**: http://localhost:7474 (neo4j/hi_password)
+   - **Test Page**: `open test-platform.html`
 
-#### Database Setup
+## 🌿 MVP Features
 
-```sql
--- Create database
-CREATE DATABASE human_intelligence;
+### ✅ Foundation Complete
+- **Graph Database**: Neo4j with optimized schema for learning trees
+- **User Management**: Create accounts and manage learning profiles
+- **REST API**: Complete CRUD operations for all entities
+- **Graph Visualization**: D3.js powered knowledge maps
+- **Development Tools**: Streamlined development workflow
 
--- Create user (optional)
-CREATE USER hi_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE human_intelligence TO hi_user;
-```
+### 🎯 Next: Core Learning Features
+- **Tree Creation**: Start new learning journeys
+- **Node Management**: Add insights, experiments, and discoveries
+- **Branching Logic**: Handle natural learning divergence
+- **Tag System**: Semantic organization and discovery
+- **Tree Exploration**: Browse and fork others' learning paths
+
+### 🔮 Future Growth
+- **Forest Communities**: Collaborative learning groups
+- **Learning Analytics**: Progress tracking and insights
+- **AI Suggestions**: Intelligent path recommendations
+- **Real-time Collaboration**: Live learning sessions
+- **Mobile Experience**: Native apps for learning on-the-go
 
 ## 🔧 Development
 
-### Backend Development
+### API Endpoints
 
 ```bash
-# Run with hot reload
-go install github.com/cosmtrek/air@latest
-air
+# Trees (Learning Paths)
+POST   /api/v1/trees              # Create new learning tree
+GET    /api/v1/trees/:id          # Get tree with all nodes
+PUT    /api/v1/trees/:id          # Update tree metadata
+DELETE /api/v1/trees/:id          # Delete tree
 
-# Run tests
-go test ./...
+# Nodes (Learning Steps)
+POST   /api/v1/nodes              # Create new learning node
+GET    /api/v1/nodes/:id          # Get node details
+PUT    /api/v1/nodes/:id          # Update node content
+DELETE /api/v1/nodes/:id          # Delete node
+POST   /api/v1/trees/:treeId/nodes/:nodeId  # Add node to tree
 
-# Generate API docs
-go install github.com/swaggo/swag/cmd/swag@latest
-swag init -g cmd/server/main.go
+# Tags (Semantic Connectors)
+POST   /api/v1/tags               # Create new tag
+GET    /api/v1/tags/popular       # Get popular tags
+POST   /api/v1/nodes/:nodeId/tags/:tagName  # Tag a node
 
-# Database migrations
-go run cmd/server/main.go migrate
-go run cmd/server/main.go rollback
+# Discovery & Visualization
+GET    /api/v1/search?q=:query    # Search trees and nodes
+GET    /api/v1/graph/visualization/:userId  # Get graph data for D3.js
 ```
 
-### Frontend Development
+### Graph Queries
+
+```cypher
+-- Find a user's learning forest
+MATCH (u:User {id: $userId})-[:CREATED]->(t:Tree)
+OPTIONAL MATCH (t)-[:CONTAINS]->(n:Node)
+RETURN u, t, collect(n) as nodes
+
+-- Discover related trees through tags
+MATCH (t1:Tree)-[:TAGGED_WITH]->(tag:Tag)<-[:TAGGED_WITH]-(t2:Tree)
+WHERE t1.id = $treeId AND t1 <> t2
+RETURN t2, tag, count(*) as shared_tags
+ORDER BY shared_tags DESC
+
+-- Find branching paths in a tree
+MATCH (tree:Tree)-[:CONTAINS]->(root:Node)
+WHERE tree.id = $treeId AND NOT (root)<-[:BRANCHES_TO]-()
+MATCH path = (root)-[:BRANCHES_TO*]->(leaf:Node)
+WHERE NOT (leaf)-[:BRANCHES_TO]->()
+RETURN path
+```
+
+### Development Commands
 
 ```bash
-# Development server
-npm run dev
+# Start development environment
+./dev.sh start                    # Full stack
+./dev.sh backend                  # Backend only
+./dev.sh services                 # Databases only
 
-# Type checking
-npm run check
+# Check status
+./dev.sh status                   # Show running services
+./dev.sh logs                     # View logs
 
-# Linting
-npm run lint
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
+# Quick actions
+./dev.sh test                     # Open test page
+./dev.sh neo4j                    # Open Neo4j browser
+./dev.sh stop                     # Stop everything
 ```
 
-### Database Migrations
+## 🧪 Testing Your Garden
+
+Open the test interface to explore the platform:
 
 ```bash
-# Create new migration
-touch backend/migrations/002_add_feature.sql
+# Open test page
+./dev.sh test
 
-# Apply migrations
-go run cmd/server/main.go migrate
-
-# Check migration status
-go run cmd/server/main.go migrate-status
+# Or manually
+open test-platform.html
 ```
 
-## 🧪 Testing
+Test key features:
+- ✅ Create users and trees
+- ✅ Add nodes to learning paths  
+- ✅ Apply semantic tags
+- ✅ Visualize knowledge graphs
+- ✅ Search across the forest
 
-### Backend Tests
-```bash
-cd backend
-go test ./...
-go test -v ./internal/handlers/
-go test -race ./...
+## 🗂️ Project Structure
+
 ```
-
-### Frontend Tests
-```bash
-cd frontend
-npm run test
-npm run test:watch
-npm run test:ui
-```
-
-### E2E Tests
-```bash
-cd frontend
-npm run test:e2e
-```
-
-## 📚 API Documentation
-
-### Authentication
-```http
-POST /api/v1/auth/register
-POST /api/v1/auth/login
-POST /api/v1/auth/refresh
-```
-
-### Nodes
-```http
-GET    /api/v1/nodes          # List public nodes
-POST   /api/v1/nodes          # Create node
-GET    /api/v1/nodes/:id      # Get node
-PUT    /api/v1/nodes/:id      # Update node
-DELETE /api/v1/nodes/:id      # Delete node
-POST   /api/v1/nodes/:id/vote # Vote on node
-```
-
-### Learning Paths
-```http
-GET    /api/v1/paths               # List public paths
-POST   /api/v1/paths               # Create path
-GET    /api/v1/paths/:id           # Get path
-PUT    /api/v1/paths/:id           # Update path
-DELETE /api/v1/paths/:id           # Delete path
-POST   /api/v1/paths/:id/fork      # Fork path
-POST   /api/v1/paths/:id/complete  # Mark as completed
-POST   /api/v1/paths/:id/tldr      # Create TLDR
-```
-
-### Search
-```http
-GET  /api/v1/search?q=query        # Text search
-POST /api/v1/search/semantic       # Semantic search
-GET  /api/v1/search/suggestions    # AI recommendations
-```
-
-### WebSocket Events
-```javascript
-// Real-time activity updates
-{
-  "type": "activity",
-  "data": {
-    "user": "username",
-    "action": "node_completed",
-    "target": "node_id",
-    "timestamp": "2024-01-01T00:00:00Z"
-  }
-}
-```
-
-## 🎯 Environment Variables
-
-### Backend (.env)
-```bash
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=password
-DB_NAME=human_intelligence
-
-# JWT
-JWT_SECRET=your-secret-key
-
-# AI Services
-LOCALAI_ENABLED=true
-LOCALAI_BASE_URL=http://localhost:8080
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=...
-
-# Features
-REDIS_ENABLED=false
-SEARCH_ENGINE=simple
-PLUGINS_ENABLED=true
-```
-
-### Frontend (.env)
-```bash
-# API Configuration
-VITE_API_URL=http://localhost:8080
-VITE_WS_URL=ws://localhost:8080
-
-# Feature Flags
-VITE_ENABLE_AI_FEATURES=true
-VITE_ENABLE_REAL_TIME=true
-```
-
-## 🚢 Deployment
-
-### Docker Production
-```bash
-# Build production images
-docker-compose -f docker-compose.prod.yml build
-
-# Deploy
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### Kubernetes
-```bash
-# Apply manifests
-kubectl apply -f k8s/
-
-# Check deployment
-kubectl get pods -n human-intelligence
-```
-
-### Manual Deployment
-```bash
-# Backend
-cd backend
-CGO_ENABLED=0 GOOS=linux go build -o hi-server cmd/server/main.go
-
-# Frontend
-cd frontend
-npm run build
+human-intelligence/
+├── backend/                 # Go API server
+│   ├── cmd/server/         # Application entry point
+│   ├── internal/models/    # Graph data models
+│   └── internal/database/  # Neo4j integration
+├── frontend/               # SvelteKit interface
+│   ├── src/lib/components/ # UI components
+│   └── src/routes/         # Application pages
+├── scripts/dev/            # Development tools
+│   ├── start-dev.sh       # Full stack startup
+│   ├── start-backend.sh   # Backend only
+│   └── stop-dev.sh        # Graceful shutdown
+├── dev.sh                 # Main development CLI
+├── quick-start.sh         # Simple manual start
+└── test-platform.html    # Development test interface
 ```
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We're building the future of collaborative learning! 
 
 ### Development Workflow
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add tests for your changes
-5. Run the test suite (`go test ./...` and `npm test`)
-6. Commit your changes (`git commit -m 'Add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
+1. **Start your environment**: `./dev.sh start`
+2. **Make your changes**: Edit code with hot reloading
+3. **Test your garden**: Use the test interface
+4. **Check the graph**: Explore relationships in Neo4j Browser
+5. **Submit your growth**: Create a pull request
 
-### Code Style
-- **Go**: Use `gofmt` and `golint`
-- **JavaScript/Svelte**: Use Prettier and ESLint
-- **CSS**: Follow BEM methodology
-- **Commits**: Use conventional commits
+### Code Philosophy
+- **Graph-First**: Design with relationships in mind
+- **Learning-Centered**: Every feature should enhance the learning experience
+- **Natural Growth**: Features should feel organic, not forced
+- **Community Focused**: Enable collaboration without compromising personal learning
+
+## 🎯 Vision: The Learning Future
+
+We're creating a platform where:
+- **Learning is Visual**: See your knowledge grow like a living garden
+- **Connections Emerge**: Discover relationships between different areas of study
+- **Communities Form**: Find others on similar learning journeys
+- **Knowledge Persists**: Build a permanent record of your intellectual growth
+- **Wisdom Spreads**: Share insights that help others learn faster
+
+**Join us in growing the forest of human knowledge.** 🌳🌲🌴
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🎉 Acknowledgments
-
-- Inspired by the collaborative nature of GitHub
-- Learning from the community wisdom of Stack Overflow
-- Aesthetic influenced by the vaporwave and synthwave movements
-- Built for the next generation of learners
-
-## 🔗 Links
-
-- **Demo**: [https://hi.demo.com](https://hi.demo.com)
-- **Documentation**: [https://docs.hi.com](https://docs.hi.com)
-- **Discord**: [https://discord.gg/hi](https://discord.gg/hi)
-- **Twitter**: [@HumanIntelHQ](https://twitter.com/HumanIntelHQ)
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
 <div align="center">
 
-**Made with 🧠 by humans, augmented by AI**
+**Made with 🧠 for learners, by learners**
 
 *Human Intelligence © 2024*
 

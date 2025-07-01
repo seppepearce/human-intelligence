@@ -76,9 +76,9 @@ kill_port_processes() {
 stop_docker_services() {
     print_step "Stopping Docker services..."
 
-    if command -v docker-compose &> /dev/null && [ -f "docker-compose.neo4j.yml" ]; then
+    if command -v docker-compose &> /dev/null && [ -f "docker-compose.yml" ]; then
         if docker ps --format "table {{.Names}}" | grep -q "hi-"; then
-            docker-compose -f docker-compose.neo4j.yml down
+            docker-compose down
             print_success "Docker services stopped"
         else
             print_info "No Docker services running"
@@ -96,8 +96,8 @@ stop_backend_processes() {
     kill_port_processes $BACKEND_PORT "Backend"
 
     # Kill by process name
-    if pgrep -f "server-neo4j" >/dev/null; then
-        pkill -f "server-neo4j" || true
+    if pgrep -f "server" >/dev/null; then
+        pkill -f "server" || true
         print_success "Backend processes stopped"
     fi
 
@@ -138,7 +138,7 @@ cleanup_remaining() {
     print_step "Cleaning up remaining processes..."
 
     # Kill any processes that might be related to our project
-    local project_processes=("human-intelligence" "hi-" "neo4j-server")
+    local project_processes=("human-intelligence" "hi-" "server")
 
     for process in "${project_processes[@]}"; do
         if pgrep -f "$process" >/dev/null 2>&1; then

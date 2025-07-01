@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 BACKEND_DIR="backend"
-BINARY_NAME="server-neo4j"
+BINARY_NAME="server"
 PORT="${PORT:-8085}"
 NEO4J_URI="${NEO4J_URI:-bolt://localhost:7687}"
 NEO4J_USERNAME="${NEO4J_USERNAME:-neo4j}"
@@ -57,8 +57,8 @@ check_directory() {
         exit 1
     fi
 
-    if [ ! -f "$BACKEND_DIR/cmd/server/main_neo4j.go" ]; then
-        print_error "Backend main file not found at $BACKEND_DIR/cmd/server/main_neo4j.go"
+    if [ ! -f "$BACKEND_DIR/cmd/server/main.go" ]; then
+        print_error "Backend main file not found at $BACKEND_DIR/cmd/server/main.go"
         exit 1
     fi
 }
@@ -77,12 +77,12 @@ check_neo4j() {
         print_success "Neo4j container is running"
     else
         print_warning "Neo4j container not found. Starting Neo4j..."
-        if [ -f "docker-compose.neo4j.yml" ]; then
-            docker-compose -f docker-compose.neo4j.yml up -d neo4j redis
+        if [ -f "docker-compose.yml" ]; then
+            docker-compose up -d neo4j redis
             print_info "Waiting for Neo4j to initialize..."
             sleep 15
         else
-            print_error "docker-compose.neo4j.yml not found. Please start Neo4j manually."
+            print_error "docker-compose.yml not found. Please start Neo4j manually."
             exit 1
         fi
     fi
@@ -94,7 +94,7 @@ check_neo4j() {
         # Check if container is running first
         if docker ps --format "{{.Names}}" | grep -q "hi-neo4j"; then
             # Try to connect to Neo4j using docker-compose exec
-            if docker-compose -f docker-compose.neo4j.yml exec -T neo4j cypher-shell -u "$NEO4J_USERNAME" -p "$NEO4J_PASSWORD" "RETURN 1" &>/dev/null; then
+            if docker-compose exec -T neo4j cypher-shell -u "$NEO4J_USERNAME" -p "$NEO4J_PASSWORD" "RETURN 1" &>/dev/null; then
                 print_success "Neo4j is ready and accepting connections"
                 break
             fi
@@ -105,7 +105,7 @@ check_neo4j() {
         if [ $attempt -eq $max_attempts ]; then
             print_error "Neo4j failed to start after $max_attempts attempts"
             print_info "Checking Neo4j logs..."
-            docker-compose -f docker-compose.neo4j.yml logs neo4j | tail -10
+            docker-compose logs neo4j | tail -10
             exit 1
         fi
 
@@ -132,7 +132,7 @@ build_backend() {
 
     # Build the binary
     print_info "Compiling backend..."
-    if go build -o "$BINARY_NAME" cmd/server/main_neo4j.go; then
+    if go build -o "$BINARY_NAME" cmd/server/main.go; then
         print_success "Backend built successfully"
     else
         print_error "Failed to build backend"

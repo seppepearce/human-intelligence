@@ -122,8 +122,8 @@ check_prerequisites() {
 start_services() {
     print_step "Starting database services..."
 
-    if [ ! -f "docker-compose.neo4j.yml" ]; then
-        print_error "docker-compose.neo4j.yml not found"
+    if [ ! -f "docker-compose.yml" ]; then
+        print_error "docker-compose.yml not found"
         exit 1
     fi
 
@@ -132,7 +132,7 @@ start_services() {
         print_info "Neo4j already running"
     else
         print_info "Starting Neo4j and Redis..."
-        docker-compose -f docker-compose.neo4j.yml up -d neo4j redis
+        docker-compose up -d neo4j redis
         SERVICES_STARTED="true"
         sleep 10  # Give services time to initialize
 
@@ -145,7 +145,7 @@ start_services() {
             # Check if container is running first
             if docker ps --format "{{.Names}}" | grep -q "hi-neo4j"; then
                 # Try to connect to Neo4j
-                if docker-compose -f docker-compose.neo4j.yml exec -T neo4j cypher-shell -u "$NEO4J_USERNAME" -p "$NEO4J_PASSWORD" "RETURN 1" &>/dev/null; then
+                if docker-compose exec -T neo4j cypher-shell -u "$NEO4J_USERNAME" -p "$NEO4J_PASSWORD" "RETURN 1" &>/dev/null; then
                     print_success "Neo4j is ready"
                     break
                 fi
@@ -154,7 +154,7 @@ start_services() {
             if [ $attempt -eq $max_attempts ]; then
                 print_error "Neo4j failed to start after $max_attempts attempts"
                 print_info "Checking Neo4j logs..."
-                docker-compose -f docker-compose.neo4j.yml logs neo4j | tail -10
+                docker-compose logs neo4j | tail -10
                 exit 1
             fi
 
@@ -172,10 +172,10 @@ start_backend() {
     cd backend
 
     # Check if binary exists or needs rebuilding
-    if [ ! -f "server-neo4j" ] || [ "cmd/server/main_neo4j.go" -nt "server-neo4j" ]; then
+    if [ ! -f "server" ] || [ "cmd/server/main.go" -nt "server" ]; then
         print_info "Building backend..."
         go mod download
-        go build -o server-neo4j cmd/server/main_neo4j.go
+        go build -o server cmd/server/main.go
         print_success "Backend built"
     else
         print_info "Using existing backend binary"
@@ -197,7 +197,7 @@ start_backend() {
     export GIN_MODE="debug"
 
     print_info "Starting backend on port $BACKEND_PORT..."
-    ./server-neo4j > ../backend.log 2>&1 &
+    ./server > ../backend.log 2>&1 &
     BACKEND_PID=$!
 
     cd ..

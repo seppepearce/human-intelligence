@@ -7,212 +7,131 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
+	"strconv"
 	"syscall"
 	"time"
 
 	"human-intelligence/internal/database"
-	"human-intelligence/internal/db/seeds"
-	"human-intelligence/internal/handlers"
 	"human-intelligence/internal/models"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/gorilla/websocket"
-	"github.com/joho/godotenv"
 )
 
 type Server struct {
-	db         *database.DB
-	router     *gin.Engine
-	httpServer *http.Server
-	wsUpgrader websocket.Upgrader
+	neo4j  *database.Neo4jService
+	router *gin.Engine
+	server *http.Server
 }
 
 func main() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using system environment variables")
-	}
+	// Initialize server
+	server := &Server{}
 
-	// Check for seeding command
-	if len(os.Args) > 1 && os.Args[1] == "seed" {
-		runSeeding()
-		return
+	// Setup Neo4j connection
+	if err := server.initNeo4j(); err != nil {
+		log.Fatalf("Failed to initialize Neo4j: %v", err)
 	}
+	defer server.neo4j.Close(context.Background())
 
-	// Create server instance
-	server := &Server{
-		wsUpgrader: websocket.Upgrader{
-			CheckOrigin: func(r *http.Request) bool {
-				// In production, implement proper origin checking
-				return true
-			},
-		},
-	}
-
-	// Initialize database
-	if err := server.initDatabase(); err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-	}
-	defer server.db.Close()
-
-	// Setup router and routes
+	// Setup routes
 	server.setupRouter()
 	server.setupRoutes()
 
-	// Create HTTP server
+	// Start server
 	port := getEnv("PORT", "8080")
-	server.httpServer = &http.Server{
-		Addr:         ":" + port,
-		Handler:      server.router,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+	server.server = &http.Server{
+		Addr:    ":" + port,
+		Handler: server.router,
 	}
 
-	// Start server in goroutine
+	// Start in goroutine
 	go func() {
-		log.Printf("Starting Human Intelligence server on port %s", port)
-		log.Printf("Environment: %s", getEnv("GIN_MODE", "debug"))
-
-		if err := server.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Printf("🚀 Neo4j Knowledge Platform starting on port %s", port)
+		if err := server.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Failed to start server: %v", err)
 		}
 	}()
 
-	// Wait for interrupt signal to gracefully shutdown
+	// Graceful shutdown
 	server.gracefulShutdown()
 }
 
-func (s *Server) initDatabase() error {
-	config := database.DefaultConfig()
+func (s *Server) initNeo4j() error {
+	config := &database.Neo4jConfig{
+		URI:                          getEnv("NEO4J_URI", "bolt://localhost:7687"),
+		Username:                     getEnv("NEO4J_USERNAME", "neo4j"),
+		Password:                     getEnv("NEO4J_PASSWORD", "hi_password"),
+		Database:                     getEnv("NEO4J_DATABASE", "knowledgegraph"),
+		MaxConnectionPoolSize:        50,
+		ConnectionTimeout:            30 * time.Second,
+		MaxTransactionRetries:        3,
+		InitialRetryDelay:            time.Second,
+		MaxRetryDelay:                30 * time.Second,
+		RetryDelayMultiplier:         2.0,
+		ConnectionAcquisitionTimeout: 60 * time.Second,
+	}
 
-	db, err := database.NewDB(config)
+	neo4jService, err := database.NewNeo4jService(config)
 	if err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
+		return fmt.Errorf("failed to create Neo4j service: %w", err)
 	}
 
-	s.db = db
-
-	// Run migrations
-	migrationsDir := "migrations"
-	if err := s.db.RunMigrations(migrationsDir); err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
-	}
-
+	s.neo4j = neo4jService
+	log.Println("✅ Connected to Neo4j successfully")
 	return nil
 }
 
 func (s *Server) setupRouter() {
-	// Set Gin mode based on environment
-	if getEnv("GIN_MODE", "debug") == "release" {
-		gin.SetMode(gin.ReleaseMode)
-	}
+	s.router = gin.Default()
 
-	s.router = gin.New()
-
-	// Middleware
-	s.router.Use(gin.Logger())
-	s.router.Use(gin.Recovery())
-	s.router.Use(corsMiddleware())
-	s.router.Use(securityMiddleware())
+	// CORS middleware - permissive for development
+	s.router.Use(cors.New(cors.Config{
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Requested-With"},
+		AllowCredentials: true,
+	}))
 }
 
 func (s *Server) setupRoutes() {
-	// Create handlers
-	userHandler := handlers.NewUserHandler(s.db)
-	nodeHandler := handlers.NewNodeHandler(s.db)
-	pathHandler := handlers.NewPathHandler(s.db)
-	searchHandler := handlers.NewSearchHandler(s.db)
-
 	// Health check
 	s.router.GET("/health", s.healthCheck)
-	s.router.GET("/metrics", s.metrics)
 
-	// API v1 routes
-	v1 := s.router.Group("/api/v1")
+	// API routes
+	api := s.router.Group("/api/v1")
 	{
-		// Authentication routes
-		auth := v1.Group("/auth")
-		{
-			auth.POST("/register", userHandler.Register)
-			auth.POST("/login", userHandler.Login)
-			auth.POST("/refresh", userHandler.RefreshToken)
-		}
+		// Users
+		api.POST("/users", s.createUser)
+		api.GET("/users/:id", s.getUser)
+		api.GET("/users/username/:username", s.getUserByUsername)
 
-		// Protected routes
-		protected := v1.Group("/")
-		protected.Use(authMiddleware())
-		{
-			// User routes
-			users := protected.Group("/users")
-			{
-				users.GET("/me", userHandler.GetProfile)
-				users.PUT("/me", userHandler.UpdateProfile)
-				users.GET("/:id", userHandler.GetUser)
-			}
+		// Nodes
+		api.POST("/nodes", s.createNode)
+		api.GET("/nodes/:id", s.getNode)
+		api.GET("/nodes", s.searchNodes)
 
-			// Node routes
-			nodes := protected.Group("/nodes")
-			{
-				nodes.POST("/", nodeHandler.CreateNode)
-				nodes.GET("/:id", nodeHandler.GetNode)
-				nodes.PUT("/:id", nodeHandler.UpdateNode)
-				nodes.DELETE("/:id", nodeHandler.DeleteNode)
-				nodes.POST("/:id/vote", nodeHandler.VoteNode)
-			}
+		// Trees
+		api.POST("/trees", s.createTree)
+		api.GET("/trees/:id", s.getTree)
+		api.POST("/trees/:treeId/nodes/:nodeId", s.addNodeToTree)
 
-			// Learning Path routes
-			paths := protected.Group("/paths")
-			{
-				paths.POST("/", pathHandler.CreatePath)
-				paths.GET("/:id", pathHandler.GetPath)
-				paths.PUT("/:id", pathHandler.UpdatePath)
-				paths.DELETE("/:id", pathHandler.DeletePath)
-				paths.POST("/:id/fork", pathHandler.ForkPath)
-				paths.POST("/:id/nodes", pathHandler.AddNodeToPath)
-				paths.DELETE("/:id/nodes/:nodeId", pathHandler.RemoveNodeFromPath)
-				paths.POST("/:id/complete", pathHandler.CompletePath)
-				paths.POST("/:id/tldr", pathHandler.CreateTLDR)
-				paths.POST("/:id/vote", pathHandler.VotePath)
-			}
+		// Tags
+		api.POST("/tags", s.createTag)
+		api.POST("/nodes/:nodeId/tags/:tagName", s.tagNode)
+		api.GET("/tags/popular", s.getPopularTags)
 
-			// Search routes
-			search := protected.Group("/search")
-			{
-				search.GET("/", searchHandler.Search)
-				search.GET("/semantic", searchHandler.SemanticSearch)
-				search.GET("/suggestions", searchHandler.GetSuggestions)
-			}
+		// Graph visualization
+		api.GET("/graph/visualization/:userId", s.getVisualizationData)
 
-			// Activity feed
-			protected.GET("/activity", s.getActivityFeed)
-			protected.GET("/activity/live", s.liveActivityFeed)
-		}
-
-		// Public routes (no auth required)
-		public := v1.Group("/public")
-		{
-			public.GET("/nodes", nodeHandler.GetPublicNodes)
-			public.GET("/paths", pathHandler.GetPublicPaths)
-			public.GET("/activity", s.getPublicActivity)
-		}
-	}
-
-	// WebSocket endpoint for real-time features
-	s.router.GET("/ws", s.handleWebSocket)
-
-	// Serve static files in development
-	if gin.Mode() == gin.DebugMode {
-		s.router.Static("/static", "./static")
-		// s.router.LoadHTMLGlob("templates/*") // Commented out - no templates needed for API
+		// Search
+		api.GET("/search", s.search)
 	}
 }
 
 func (s *Server) healthCheck(c *gin.Context) {
-	// Check database health
-	if err := s.db.Health(); err != nil {
+	ctx := context.Background()
+	if err := s.neo4j.HealthCheck(ctx); err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unhealthy",
 			"error":  err.Error(),
@@ -223,101 +142,249 @@ func (s *Server) healthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":    "healthy",
 		"timestamp": time.Now().UTC(),
-		"version":   getEnv("APP_VERSION", "dev"),
+		"database":  "neo4j",
 	})
 }
 
-func (s *Server) metrics(c *gin.Context) {
-	stats := s.db.Stats()
-
-	c.JSON(http.StatusOK, gin.H{
-		"database": gin.H{
-			"open_connections":     stats.OpenConnections,
-			"in_use":               stats.InUse,
-			"idle":                 stats.Idle,
-			"wait_count":           stats.WaitCount,
-			"wait_duration":        stats.WaitDuration.String(),
-			"max_idle_closed":      stats.MaxIdleClosed,
-			"max_idle_time_closed": stats.MaxIdleTimeClosed,
-			"max_lifetime_closed":  stats.MaxLifetimeClosed,
-		},
-	})
-}
-
-func (s *Server) getActivityFeed(c *gin.Context) {
-	// TODO: Implement activity feed logic
-	c.JSON(http.StatusOK, gin.H{
-		"activities": []models.ActivityEvent{},
-		"message":    "Activity feed implementation pending",
-	})
-}
-
-func (s *Server) getPublicActivity(c *gin.Context) {
-	// TODO: Implement public activity feed
-	c.JSON(http.StatusOK, gin.H{
-		"activities": []models.ActivityEvent{},
-		"message":    "Public activity feed implementation pending",
-	})
-}
-
-func (s *Server) liveActivityFeed(c *gin.Context) {
-	// Upgrade to WebSocket for real-time activity
-	conn, err := s.wsUpgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		log.Printf("WebSocket upgrade failed: %v", err)
+// User endpoints
+func (s *Server) createUser(c *gin.Context) {
+	var user models.User
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	defer conn.Close()
 
-	// TODO: Implement real-time activity streaming
-	log.Println("WebSocket connection established for activity feed")
+	user.ID = generateID()
+	user.CreatedAt = time.Now()
+	user.UpdatedAt = time.Now()
+	user.IsActive = true
 
-	// Keep connection alive and send periodic updates
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			if err := conn.WriteJSON(gin.H{
-				"type":      "heartbeat",
-				"timestamp": time.Now().UTC(),
-			}); err != nil {
-				log.Printf("WebSocket write error: %v", err)
-				return
-			}
-		}
-	}
-}
-
-func (s *Server) handleWebSocket(c *gin.Context) {
-	conn, err := s.wsUpgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		log.Printf("WebSocket upgrade failed: %v", err)
+	ctx := context.Background()
+	if err := s.neo4j.CreateUser(ctx, &user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer conn.Close()
 
-	log.Println("WebSocket connection established")
+	c.JSON(http.StatusCreated, user)
+}
 
-	// Handle WebSocket messages
-	for {
-		var msg map[string]interface{}
-		if err := conn.ReadJSON(&msg); err != nil {
-			log.Printf("WebSocket read error: %v", err)
-			break
+func (s *Server) getUser(c *gin.Context) {
+	id := c.Param("id")
+	ctx := context.Background()
+
+	user, err := s.neo4j.GetUserByID(ctx, id)
+	if err != nil {
+		if err == models.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
 		}
-
-		// Echo message back (for now)
-		if err := conn.WriteJSON(gin.H{
-			"type":      "echo",
-			"data":      msg,
-			"timestamp": time.Now().UTC(),
-		}); err != nil {
-			log.Printf("WebSocket write error: %v", err)
-			break
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+func (s *Server) getUserByUsername(c *gin.Context) {
+	username := c.Param("username")
+	ctx := context.Background()
+
+	user, err := s.neo4j.GetUserByUsername(ctx, username)
+	if err != nil {
+		if err == models.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+// Node endpoints
+func (s *Server) createNode(c *gin.Context) {
+	var node models.Node
+	if err := c.ShouldBindJSON(&node); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	node.ID = generateID()
+	node.CreatedAt = time.Now()
+	node.UpdatedAt = time.Now()
+
+	ctx := context.Background()
+	if err := s.neo4j.CreateNode(ctx, &node); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, node)
+}
+
+func (s *Server) getNode(c *gin.Context) {
+	id := c.Param("id")
+	ctx := context.Background()
+
+	node, err := s.neo4j.GetNodeByID(ctx, id)
+	if err != nil {
+		if err == models.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Node not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, node)
+}
+
+func (s *Server) searchNodes(c *gin.Context) {
+	query := &models.GraphQuery{
+		SearchString: c.Query("q"),
+		Limit:        getIntParam(c, "limit", 20),
+		Offset:       getIntParam(c, "offset", 0),
+	}
+
+	if tags := c.QueryArray("tags"); len(tags) > 0 {
+		query.Tags = tags
+	}
+
+	ctx := context.Background()
+	response, err := s.neo4j.SearchNodes(ctx, query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// Tree endpoints
+func (s *Server) createTree(c *gin.Context) {
+	var tree models.Tree
+	if err := c.ShouldBindJSON(&tree); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	tree.ID = generateID()
+	tree.CreatedAt = time.Now()
+	tree.UpdatedAt = time.Now()
+
+	ctx := context.Background()
+	if err := s.neo4j.CreateTree(ctx, &tree); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, tree)
+}
+
+func (s *Server) getTree(c *gin.Context) {
+	// Implementation would go here
+	c.JSON(http.StatusOK, gin.H{"message": "Get tree implementation needed"})
+}
+
+func (s *Server) addNodeToTree(c *gin.Context) {
+	treeID := c.Param("treeId")
+	nodeID := c.Param("nodeId")
+	position := getIntParam(c, "position", 0)
+
+	ctx := context.Background()
+	if err := s.neo4j.AddNodeToTree(ctx, treeID, nodeID, position); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Node added to tree successfully"})
+}
+
+// Tag endpoints
+func (s *Server) createTag(c *gin.Context) {
+	var tag models.Tag
+	if err := c.ShouldBindJSON(&tag); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	tag.ID = generateID()
+	tag.CreatedAt = time.Now()
+
+	ctx := context.Background()
+	if err := s.neo4j.CreateTag(ctx, &tag); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, tag)
+}
+
+func (s *Server) tagNode(c *gin.Context) {
+	nodeID := c.Param("nodeId")
+	tagName := c.Param("tagName")
+
+	ctx := context.Background()
+	if err := s.neo4j.TagNode(ctx, nodeID, tagName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Node tagged successfully"})
+}
+
+func (s *Server) getPopularTags(c *gin.Context) {
+	limit := getIntParam(c, "limit", 10)
+
+	ctx := context.Background()
+	tags, err := s.neo4j.GetPopularTags(ctx, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"tags": tags})
+}
+
+// Graph visualization
+func (s *Server) getVisualizationData(c *gin.Context) {
+	userID := c.Param("userId")
+	depth := getIntParam(c, "depth", 2)
+	limit := getIntParam(c, "limit", 100)
+
+	ctx := context.Background()
+	data, err := s.neo4j.GetVisualizationData(ctx, userID, depth, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
+}
+
+// Search endpoint
+func (s *Server) search(c *gin.Context) {
+	searchString := c.Query("q")
+	if searchString == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query required"})
+		return
+	}
+
+	query := &models.GraphQuery{
+		SearchString: searchString,
+		Limit:        getIntParam(c, "limit", 20),
+		Offset:       getIntParam(c, "offset", 0),
+	}
+
+	ctx := context.Background()
+	response, err := s.neo4j.SearchNodes(ctx, query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (s *Server) gracefulShutdown() {
@@ -325,152 +392,35 @@ func (s *Server) gracefulShutdown() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down server...")
+	log.Println("🛑 Shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := s.httpServer.Shutdown(ctx); err != nil {
+	if err := s.server.Shutdown(ctx); err != nil {
 		log.Printf("Server forced to shutdown: %v", err)
 	}
 
-	log.Println("Server exited")
+	log.Println("✅ Server exited gracefully")
 }
 
-// runSeeding initializes database and runs seeding
-func runSeeding() {
-	log.Println("🌱 Starting database seeding process...")
-
-	// Initialize database connection
-	config := database.DefaultConfig()
-	db, err := database.NewDB(config)
-	if err != nil {
-		log.Fatalf("Failed to connect to database for seeding: %v", err)
-	}
-	defer db.Close()
-
-	// Run migrations first
-	migrationsDir := "migrations"
-	if err := db.RunMigrations(migrationsDir); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
-
-	// Create seeder and run seeding
-	seeder := seeds.NewSeeder(db.DB)
-	if err := seeder.SeedAll(); err != nil {
-		log.Fatalf("Failed to seed database: %v", err)
-	}
-
-	log.Println("✅ Database seeding completed successfully!")
-}
-
-// Middleware functions
-func corsMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		origin := c.GetHeader("Origin")
-
-		// In production, implement proper CORS policy
-		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	}
-}
-
-func securityMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("X-Content-Type-Options", "nosniff")
-		c.Writer.Header().Set("X-Frame-Options", "DENY")
-		c.Writer.Header().Set("X-XSS-Protection", "1; mode=block")
-		c.Writer.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		c.Next()
-	}
-}
-
-func authMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Get Authorization header
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Authorization header required",
-			})
-			c.Abort()
-			return
-		}
-
-		// Check Bearer token format
-		tokenString := ""
-		if strings.HasPrefix(authHeader, "Bearer ") {
-			tokenString = authHeader[7:]
-		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid authorization header format",
-			})
-			c.Abort()
-			return
-		}
-
-		// Parse and validate token
-		secret := getJWTSecret()
-		log.Printf("JWT Debug - Token: %s...", tokenString[:50]) // First 50 chars
-		log.Printf("JWT Debug - Secret: %s", secret)
-
-		token, err := jwt.ParseWithClaims(tokenString, &models.Claims{}, func(token *jwt.Token) (interface{}, error) {
-			return []byte(secret), nil
-		})
-
-		if err != nil || !token.Valid {
-			log.Printf("JWT Debug - Parse error: %v", err)
-			log.Printf("JWT Debug - Token valid: %v", token != nil && token.Valid)
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid or expired token",
-			})
-			c.Abort()
-			return
-		}
-
-		// Extract claims
-		claims, ok := token.Claims.(*models.Claims)
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid token claims",
-			})
-			c.Abort()
-			return
-		}
-
-		// Store user info in context
-		log.Printf("JWT Debug - Successfully authenticated user: %s (ID: %s)", claims.Username, claims.UserID)
-		c.Set("user_id", claims.UserID)
-		c.Set("username", claims.Username)
-		c.Set("email", claims.Email)
-
-		c.Next()
-	}
-}
-
-// Get JWT secret from environment
-func getJWTSecret() string {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		// Use a default secret for development
-		return "your_super_secret_jwt_key_change_this_in_production"
-	}
-	return secret
-}
-
-// Utility function
+// Utility functions
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
 	return defaultValue
+}
+
+func getIntParam(c *gin.Context, key string, defaultValue int) int {
+	if value := c.Query(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultValue
+}
+
+func generateID() string {
+	return fmt.Sprintf("%d", time.Now().UnixNano())
 }
