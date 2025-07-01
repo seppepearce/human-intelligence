@@ -428,6 +428,8 @@ func (s *Neo4jService) GetNodeByID(ctx context.Context, id string) (*models.Node
 func (s *Neo4jService) SearchNodes(ctx context.Context, query *models.GraphQuery) (*models.GraphResponse, error) {
 	cypher := `
 		MATCH (n:Node)
+		OPTIONAL MATCH (n)<-[:CREATED]-(owner:User)
+		OPTIONAL MATCH (n)-[:TAGGED]->(tag:Tag)
 		WHERE 1=1
 	`
 	params := make(map[string]interface{})
@@ -455,14 +457,11 @@ func (s *Neo4jService) SearchNodes(ctx context.Context, query *models.GraphQuery
 
 	// Add tag filtering
 	if len(query.Tags) > 0 {
-		cypher += `
-			AND EXISTS {
-				MATCH (n)-[:TAGGED]->(tag:Tag)
-				WHERE tag.name IN $tags
-			}
-		`
+		cypher += ` AND tag.name IN $tags`
 		params["tags"] = query.Tags
 	}
+
+	cypher += ` RETURN n, owner, collect(tag.name) as tags`
 
 	// Add ordering
 	if query.SortBy != "" {
@@ -481,12 +480,6 @@ func (s *Neo4jService) SearchNodes(ctx context.Context, query *models.GraphQuery
 		params["offset"] = query.Offset
 		params["limit"] = query.Limit
 	}
-
-	cypher += `
-		OPTIONAL MATCH (n)<-[:CREATED]-(owner:User)
-		OPTIONAL MATCH (n)-[:TAGGED]->(tag:Tag)
-		RETURN n, owner, collect(tag.name) as tags
-	`
 
 	records, err := s.ExecuteQuery(ctx, cypher, params)
 	if err != nil {

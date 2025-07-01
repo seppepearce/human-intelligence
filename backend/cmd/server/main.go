@@ -474,6 +474,8 @@ func (s *Server) createSimpleNode(c *gin.Context) {
 	}
 }
 
+
+
 func generateID() string {
 	return fmt.Sprintf("%d", time.Now().UnixNano())
 }
